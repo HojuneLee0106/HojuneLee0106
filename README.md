@@ -1,903 +1,198 @@
-# 생활법률 RAG 챗봇
+<h1 align="center">이호준 &nbsp;|&nbsp; Hojune Lee</h1>
 
-법조문 · 대법원 판례 · 생활법령 상담 자료를 근거로 답변하는 법률 Q&A 어시스턴트입니다.
-사용자가 변호사를 만나기 전에 스스로 상황을 이해하고 무엇을 준비해야 할지 파악할 수 있도록,
-**출처가 명시된 구체적인 답변**을 제공하는 것을 목표로 합니다.
+<p align="center">
+  <b>AI/ML Engineer</b><br/>
+  NLP &nbsp;·&nbsp; RAG &nbsp;·&nbsp; LLM Agent &nbsp;·&nbsp; Model Evaluation
+</p>
 
-일반적인 법률 챗봇과의 차이는 답변의 근거를 실제 원문에서 가져온다는 점입니다.
-국가법령정보센터 API로 수집한 현행 법조문 5,390청크와 2020년 이후 대법원 판례 3,138건,
-법제처 생활법령 21,610청크를 벡터DB에 적재하고, 에이전트가 질문 성격에 맞는 도구를 골라 검색합니다.
-
----
-
-## 목차
-
-- [누구를 위한 서비스인가](#누구를-위한-서비스인가)
-- [주요 기능](#주요-기능)
-- [아키텍처](#아키텍처)
-- [데이터 구성](#데이터-구성)
-- [기술 스택](#기술-스택)
-- [프로젝트 구조](#프로젝트-구조)
-- [실행 방법](#실행-방법)
-- [데모](#데모)
-- [데이터 파이프라인](#데이터-파이프라인)
-- [평가](#평가)
-- [실험 기록](#실험-기록)
-- [배포](#배포)
-- [설계 기록](#설계-기록)
-- [알려진 이슈](#알려진-이슈)
-- [앞으로 할 일](#앞으로-할-일)
+<p align="center">
+  <a href="mailto:hojune0106@naver.com">
+    <img src="https://img.shields.io/badge/Email-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email"/>
+  </a>
+  <img src="https://komarev.com/ghpvc/?username=HojuneLee0106&style=for-the-badge&color=0A66C2&label=PROFILE+VIEWS" alt="Profile views"/>
+</p>
 
 ---
 
-## 누구를 위한 서비스인가
+## 👋 About Me
 
-**법률 문제를 처음 겪는 일반인**이 주 사용자입니다. 변호사를 만나기 전에 "내가 지금 어떤 상황이고 무엇을 준비해야 하는지"를 스스로 파악하는 것이 목표입니다.
+> **"만들었다"보다 "정말 나아졌는지 쟀다"를 더 중요하게 생각합니다.**
 
-이 사람들이 검색으로 해결하지 못하는 것은 두 가지입니다.
+NLP 프로젝트를 중심으로 STT 성능 개선, TTS 모델 제작, RAG·에이전트 시스템까지 다뤄왔습니다.
+한 줄을 고친 뒤 지표가 0.03 올랐을 때 그게 개선인지 측정 노이즈인지 구분하려고,
+같은 문항을 3회씩 반복 측정하는 평가 파이프라인부터 만드는 편입니다.
 
-- **어떤 법이 적용되는지 모른다.** "고양이를 죽였는데 처벌받나요"라고 물을 때 동물보호법 제10조를 찾아볼 생각을 하지 못합니다.
-- **찾은 정보가 맞는지 확신할 수 없다.** 블로그 글은 출처가 없고 개정 전 내용일 수 있습니다.
-
-그래서 **조문 번호와 법정형을 원문에서 가져와 제시하는 것**이 이 서비스의 핵심입니다. 답변 아래 "검색한 자료"에서 실제 조문 원문을 그대로 볼 수 있게 한 것도 같은 이유입니다.
-
-반대로 **하지 않는 것**도 분명합니다. 승소 가능성 예측, 구체적 소송 전략, 특정 변호사 추천은 하지 않습니다. 근거를 댈 수 없는 판단이기 때문입니다.
-
-현재는 `PASSCODE` 초대 코드로 **지인 대상 비공개 운영** 중입니다.
+- 🎓 **숭실대학교 소프트웨어학부** (2020.03 ~ 2026.02)
+- 🚀 **카카오테크 부트캠프 AI 실무개발 4기** (2026.05 ~ )
+- 🎖️ 해병대 1263기 병장 만기전역 (2020.10 ~ 2022.04)
+- 🔬 관심 분야 — RAG Architecture, Agent Systems, LLM Fine-tuning, Evaluation
 
 ---
 
-## 주요 기능
+## 💼 Experience
 
-- **다중 소스 RAG 검색** — 법조문(`search_law`), 대법원 판례(`search_case`), 생활법령 상담(`search_qa`) 세 도구를 제공하고 LLM이 질문에 맞게 조합. 한 턴에 여러 도구를 병렬 호출한다.
-- **분야별 필터링** — 형사/임대차/노동/교통/민사 5개 도메인으로 검색 범위 축소
-- **출처 인용** — 답변에 조문 번호(`도로교통법 제148조의2`)와 사건번호(`2022도3792`)를 원문 그대로 표기
-- **멀티턴 대화 + 자동 요약** — `thread_id` 기반 이력 유지, 메시지 20개 초과 시 오래된 대화를 요약해 컨텍스트 관리
-- **토큰 단위 스트리밍** — SSE로 실시간 응답. 내부 도구 호출·요약 과정은 사용자에게 노출되지 않음
-- **검색 진행 상황 표시** — 첫 토큰까지 20초 안팎 걸리므로 어떤 도구가 도는 중인지 실시간 안내
-- **검색한 자료 표시** — 답변 아래 목록에서 항목에 마우스를 올리면 오른쪽 패널에 **원문 그대로** 표시 (추가 토큰 없음)
-- **마크다운 렌더링** — 굵게·제목·목록을 표시. LLM 출력이므로 HTML 이스케이프 후 렌더
-- **사용자 인증 & 대화 관리** — bcrypt 해시 + 토큰 인증, 사용자별 대화 목록/이력/삭제, 소유권 검증
-- **초대 코드 가입 제한** — `PASSCODE` 환경변수로 가입을 통제 (지인 대상 비공개 운영)
-- **증분 임베딩** — manifest 기반으로 변경된 법령·신규 판례만 재수집
+### AItheNutrigene · AI/ML 인턴 <sub>2024.12 ~ 2025.02</sub>
 
----
+**SK Shieldus STT 성능 개선 프로젝트** (약 12주)
 
-## 아키텍처
+N-gram Language Modeling과 Neural Rescoring을 적용해 상용 STT 모델의 인식 오류를 줄였습니다.
 
-```mermaid
-graph TD
-    START([START]) --> summarize["summarize<br/>메시지 20개 초과 시<br/>오래된 10개 요약"]
-    summarize --> agent["agent<br/>LLM + 도구 바인딩"]
-    agent -->|tool_calls 있음| tools["tools (병렬 실행)<br/>search_law · search_case · search_qa"]
-    tools --> agent
-    agent -->|최종 답변| END([END])
-```
+| 지표 | Before | After | 개선 |
+|---|---|---|---|
+| **WER** (단어 오류율) | 18.64% | **14.11%** | ▼ 4.53%p |
+| **CER** (문자 오류율) | 6.83% | **5.57%** | ▼ 1.26%p |
 
-[app/graph.py](app/graph.py)는 LangGraph 기반이며 3가지 variant를 지원합니다.
-
-| variant | 구조 | 설명 |
-|---|---|---|
-| **`single`** (운영 중) | 라우팅 없음 | 단일 에이전트가 3개 도구를 모두 사용 |
-| `current` | supervisor 라우팅 | research(법조문·판례) / counsel(생활법령)로 분기, 도구 배타적 |
-| `shared` | supervisor 라우팅 | counsel에도 법조문·판례 도구 공유 |
-
-LangSmith 평가로 세 구조를 비교한 뒤 `single`을 채택했습니다. 케이스가 2종류뿐인 상황에서 라우팅 오분류 위험이 이득보다 컸고, 단일 에이전트가 필요한 도구를 스스로 조합하는 편이 정확했습니다.
-
-### 요청 처리 흐름
-
-```
-POST /api/query/stream
-  → 소유권 검증 (남의 thread 접근 차단)
-  → 대화 메타 upsert (첫 질문을 제목으로)
-  → astream_events 로 그래프 실행
-      · summarize 노드 출력은 필터링 (내부용)
-      · on_tool_start -> status 이벤트 (진행 상황 안내)
-      · 도구 호출 턴의 텍스트는 reset 이벤트로 폐기
-      · 최종 답변 토큰만 SSE 전송
-  → [DONE]
-```
-
-`recursion_limit`(기본 16)을 하드 상한으로 두고, 프롬프트로 도구 호출을 4회까지 제한합니다. 상한 초과 시 원시 예외 대신 안내 문구를 반환합니다.
+`Python` `NVIDIA NeMo` `KenLM`
 
 ---
 
-## 데이터 구성
+## 🚀 Projects
 
-### 법령 · 판례 (`var/chroma_persist`, 35,210청크)
+### ⚖️ [생활법률 RAG 챗봇](https://github.com/HojuneLee0106/online_law) <sub>KTB</sub>
 
-국가법령정보센터 Open API로 수집합니다.
+법조문 · 대법원 판례 · 생활법령을 근거로 답하는 법률 Q&A 어시스턴트.
+답변의 조문 번호와 사건번호를 **원문에서 그대로 가져와** 인용합니다.
 
-| 도메인 | 법령 청크 | 판례 |
-|---|---:|---:|
-| criminal (형사) | 1,691 | 919 |
-| civil (민사) | 2,747 | 1,965 |
-| labor (노동) | 489 | 283 |
-| traffic (교통) | 381 | 108 |
-| housing (임대차) | 82 | 61 |
-| **합계** | **5,390** | **3,138건 / 29,820청크** |
-
-- 법령 29개(중복 포함), 조문 단위로 분할해 적재
-- 판례는 대법원 선고분만, 기간 `2020.01.09 ~ 2026.05.29`
-- 판례 198건은 두 개 이상 도메인에 속함 (예: 특정범죄가중법 → criminal + traffic)
-
-### 생활법령 (`var/chroma_qa`, 21,610청크)
-
-법제처 "찾기쉬운 생활법령" 책자형 PDF 280건을 섹션 단위로 파싱해 적재합니다. 18개 대분류로 필터링할 수 있습니다.
-
-### 임베딩
-
-`jhgan/ko-sroberta-multitask` — 한국어 특화 문장 임베딩 모델. 법령/판례와 생활법령을 **별도 컬렉션**으로 분리해 상담 검색이 법조문 검색에 섞이지 않도록 했습니다.
-
-청킹은 `RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)`을 공통으로 사용합니다.
-
-### 무엇이 어디에 저장되는가
-
-| 저장소 | 경로 | 크기 | 내용 | git |
-|---|---|---:|---|---|
-| 법령·판례 벡터DB | `var/chroma_persist` | 502MB | 조문 5,390 + 판례 29,820 청크 | ✗ |
-| 생활법령 벡터DB | `var/chroma_qa` | 323MB | 생활법령 21,610 청크 | ✗ |
-| 사용자·대화 메타 | `var/users.db` | 32KB | 계정, 토큰, 대화 목록 | ✗ |
-| 대화 이력 | `var/checkpoints.db` | 21MB | LangGraph 체크포인트 | ✗ |
-| 수집 상태 | `var/chroma_persist_manifest.json` | — | 증분 수집 기록 | ✗ |
-| 원본 PDF | `data/pdfs/` | 426MB | 생활법령 책자 280건 | ✗ |
-| 파싱 결과 | `data/qa_documents.json` | 35MB | 섹션 단위 JSON | ✗ |
-| 콘텐츠 카탈로그 | `data/csm_catalog.json` | 34KB | PDF 메타데이터 | ✓ |
-
-`var/`와 대용량 `data/` 파일은 git에 포함하지 않습니다. 벡터DB는 EC2 호스트 볼륨으로 마운트되고, PDF·파싱 결과는 로컬 파이프라인에서만 씁니다.
-
-### 벡터DB 메타데이터 스키마
-
-검색 결과의 `source` 필드가 답변에 인용되는 출처가 됩니다.
-
-**법조문** (`doc_type: "law"`)
-
-| 필드 | 예시 | 용도 |
-|---|---|---|
-| `law_name` | `도로교통법` | 법령명 |
-| `article_no` / `article_branch_no` | `148` / `2` | 조문번호 + 가지번호 |
-| `article_label` | `제148조의2` | 조합된 표기 |
-| `article_title` | `벌칙` | 조문 제목 |
-| `domain` | `traffic` | 검색 필터 |
-| `mst` / `efYd` | `284025` / `20260312` | 법령일련번호·시행일 (버전 판별) |
-| `source` | `도로교통법 제148조의2(벌칙)` | **답변에 인용되는 출처** |
-
-**판례** (`doc_type: "case"`)
-
-| 필드 | 예시 | 용도 |
-|---|---|---|
-| `prec_id` | `618185` | 판례일련번호 (중복 수집 방지 키) |
-| `case_name` / `case_no` | `손해배상(기)` / `2022도3792` | 사건명·사건번호 |
-| `court` / `judged_date` | `대법원` / `2022.05.12` | 법원·선고일 |
-| `case_type` | `형사` | 사건종류 (도메인 필터에 사용) |
-| `law_name` | `형법` | 참조법령 |
-| `source` | `손해배상(기) (2022도3792, 대법원 2022.05.12)` | **답변에 인용되는 출처** |
-
-**생활법령** (`doc_type: "qa"`)
-
-| 필드 | 예시 | 용도 |
-|---|---|---|
-| `csm_seq` | `707` | 콘텐츠 일련번호 |
-| `category` / `category_seq` | `부동산/임대차` / `3` | 18개 대분류 (검색 필터) |
-| `content_title` / `section` | `가족관계 등록` / `1.1.1 …` | 콘텐츠·섹션 |
-| `source` | `생활법령 - 가족관계 등록 > 1.1.1 …` | **답변에 인용되는 출처** |
-
-### SQLite 스키마
-
-**`var/users.db`** — 애플리케이션이 직접 관리
-
-```
-users          id, username(unique), password_hash(bcrypt), created_at
-tokens         token(pk), user_id, created_at
-conversations  thread_id(pk), user_id, title, created_at, updated_at
-```
-
-`conversations.thread_id`가 LangGraph 체크포인트의 `thread_id`와 같은 값이라, 대화 메타(제목·소유자)와 실제 메시지 이력이 이 키로 연결됩니다. 대화를 삭제하면 양쪽 모두 지웁니다.
-
-**`var/checkpoints.db`** — LangGraph `AsyncSqliteSaver`가 관리
-
-```
-checkpoints    thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, checkpoint, metadata
-writes         thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, value
-```
-
-메시지가 턴마다 누적 저장되므로 대화가 길어질수록 커집니다. 요약 노드가 20개 초과분을 압축하는 것은 **LLM에 보내는 컨텍스트**이지 저장 용량이 아닙니다.
-
-### 증분 수집 manifest
-
-`var/chroma_persist_manifest.json`이 무엇을 이미 수집했는지 기록합니다.
-
-```
-law:{domain}:{법령명}   → "v2:{mst}:{efYd}"   (29개)
-case:{domain}:{판례일련번호} → "done"            (3,336개)
-```
-
-법령은 `mst:efYd`가 바뀌었을 때만 다시 임베딩합니다. 앞의 `v2`는 메타데이터 스키마 버전으로, 법령이 개정되지 않아도 스키마가 바뀌면 강제로 재구축하기 위한 것입니다(조문 가지번호 버그 수정 때 도입).
-
-판례는 `prec_id` 단위로 기록해 본문 조회 자체를 건너뜁니다. 판례 3,138건이지만 manifest 항목이 3,336개인 것은 198건이 두 도메인에 걸쳐 있기 때문입니다.
-
----
-
-## 기술 스택
-
-| 영역 | 선택 | 이유 |
-|---|---|---|
-| LLM | `claude-sonnet-5` + `effort=low` | 모델 교체가 이 프로젝트에서 가장 큰 단일 개선이었다(quality 0.787 → 0.915). `effort=low`는 품질 손실이 측정 편차 안쪽인데 지연을 38% 줄인다. `LLM_PROVIDER=google`로 Gemini 전환 가능 |
-| Agent | LangGraph | 한 턴에 도구를 **병렬 호출**해야 지연이 줄고, 멀티턴에는 체크포인트가 필요하다. 라우팅 없는 단일 에이전트(`single`)를 쓰지만 그래프 구조는 유지 |
-| Vector DB | Chroma | 파일 기반이라 별도 서버가 필요 없다. 2GB EC2에 서버를 하나 더 띄울 여유가 없었다 |
-| 임베딩 | `jhgan/ko-sroberta-multitask` | 한국어 특화. 다만 **유류분(遺留分)을 유류(油類)로 혼동**하는 등 법률 용어에서 한계가 확인됐다 |
-| API | FastAPI + SSE | 첫 토큰까지 7초, 완료까지 22초라 스트리밍 없이는 쓸 수 없다 |
-| 저장소 | SQLite ×2 | 사용자 수가 적어 DB 서버가 과하다. 사용자·대화 메타(앱 관리)와 LangGraph 체크포인트(라이브러리 관리)를 분리 |
-| 평가 | LangSmith | 문항당 3회 반복과 문항별 비교가 필요하다. LLM-judge가 못 보는 층은 규칙 기반 평가자로 따로 잰다 |
-| 프론트 | 단일 HTML | 빌드 도구 없이 `static/index.html` 하나. 마크다운 렌더러도 직접 만들어 외부 의존성이 없다 |
-| 배포 | Docker → GHCR → EC2 | 단일 인스턴스. 벡터DB는 이미지에 넣지 않고 호스트 볼륨으로 마운트 |
-
----
-
-## 프로젝트 구조
-
-```
-online_law/
-├── app/                      # 서비스 코드
-│   ├── main.py               #   API 엔드포인트, 인증, SSE 스트리밍
-│   ├── graph.py              #   LangGraph 정의, 프롬프트, LLM 설정
-│   ├── db.py                 #   사용자 인증 · 대화 목록 (SQLite)
-│   ├── law_api.py            #   국가법령정보센터 API 클라이언트 (페이징·재시도)
-│   ├── vectordb.py           #   법령/판례 벡터DB 구축·로드
-│   └── counsel_tools.py      #   생활법령 검색 도구
-├── scripts/                  # 데이터 파이프라인 (로컬 1회성) · 운영 점검
-│   ├── download.py           #   생활법령 PDF 다운로드
-│   ├── parse_pdfs.py         #   PDF → 섹션 단위 JSON
-│   ├── build_qa_vectordb.py  #   생활법령 벡터DB 적재
-│   ├── check_law_names.py    #   법령명 검증 유틸
-│   ├── dump_conversations.py #   checkpoints.db 에서 실제 질문·답변 조회
-│   └── bench_concurrency.py  #   배포 서버 동시 접속 지연 측정
-├── eval/                     # LangSmith 평가
-│   ├── eval_dataset_single.json   #   single agent 평가 12문항
-│   ├── eval_dataset.json          #   3-variant 비교용 16문항
-│   ├── eval_evaluators.py         #   도구 사용 2종 + 인용 근거성 2종 + LLM-judge
-│   ├── eval_targets.py            #   variant별 실행 target (검색 결과도 함께 반환)
-│   ├── upload_dataset_single.py   #   데이터셋 업로드·갱신
-│   ├── run_eval_single.py         #   single 단독 평가 (3회 반복)
-│   └── run_eval.py                #   variant 3종 비교
-├── data/                     # 원본·중간 산출물 (git 미포함)
-├── static/index.html         # 프론트엔드 (단일 파일)
-└── var/                      # 런타임 상태 (git 미포함, EC2 볼륨 마운트)
-```
-
----
-
-## 실행 방법
-
-```bash
-uv sync
-uv run uvicorn app.main:app --reload
-```
-
-### 환경 변수 (`.env`)
-
-| 변수 | 기본값 | 설명 |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | — | 필수 (Claude 사용 시) |
-| `ANTHROPIC_MODEL` | `claude-sonnet-4-6` | 운영은 `claude-sonnet-5` |
-| `LLM_PROVIDER` | `anthropic` | `google`로 바꾸면 Gemini 사용 |
-| `LLM_TEMPERATURE` | `0` | 법률 답변 일관성을 위해 0 고정. Sonnet 5 이후 세대는 비기본값을 거부하므로 자동으로 미적용 |
-| `LLM_EFFORT` | (미지정) | `low`/`medium`/`high` — Sonnet 5 이후 세대만 적용 |
-| `LAW_API_OC` | — | 국가법령정보센터 Open API 인증키 |
-| `GRAPH_RECURSION_LIMIT` | `16` | 도구 루프 하드 상한 |
-| `CHROMA_PERSIST_DIR` | `./var/chroma_persist` | 법령/판례 벡터DB |
-| `PASSCODE` | (없음) | 가입 초대 코드. 비어 있으면 검사하지 않음 |
-| `LANGSMITH_API_KEY` | — | 평가 시 필요 |
-
-벡터DB가 없다면 먼저 구축해야 합니다.
-
-```bash
-uv run python -m app.vectordb            # 법령 + 판례 (전체 30분 내외)
-uv run python -m app.vectordb --domain housing labor   # 특정 도메인만
-uv run python scripts/build_qa_vectordb.py             # 생활법령
-```
-
----
-
-## 데모
-
-아래는 배포 서버에서 실제로 받은 응답입니다.
-
-```bash
-TOKEN=$(curl -s -X POST http://<host>:8000/api/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"...","password":"..."}' | jq -r .token)
-
-curl -N -X POST http://<host>:8000/api/query/stream \
-  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"question":"맥심 커피 스틱 하나정도의 회사 비품을 집에 가져가면 처벌되나요?"}'
-```
-
-SSE 이벤트는 5종입니다.
-
-```
-data: {"thread_id": "de510b4e-…"}                     새 대화면 여기서 id 발급
-data: {"status": "관련 법조문을 찾는 중입니다"}          도구 실행 중 (병렬이면 여러 건)
-data: {"reset": true}                                 도구 호출 턴이었으므로 지금까지 텍스트 폐기
-data: {"token": "커피믹스 한 개라도 "}                  답변 토큰
-data: {"sources": [{"source": "형법 제329조(절도)", "content": "제329조(절도) …"}]}
-data: [DONE]
-```
-
-받은 답변(발췌)입니다.
-
-> 커피믹스 한 개라도 회사(타인) 소유물을 허락 없이 가져가면 법 이론상으로는 절도죄 구성요건에 해당합니다. 형법 제329조는 "타인의 재물을 절취한 자는 **6년 이하의 징역 또는 1천만원 이하의 벌금**에 처한다"고 규정하고 있고 (…)
->
-> - 검색된 판례들은 반복적인 절도범(누범 가중처벌)에 관한 것이라 이번 사안과는 결이 다르므로, 커피믹스 한 개 사안에 직접 적용할 판례는 아닙니다.
-
-조문 번호와 법정형이 원문에서 나왔고, **검색은 됐지만 사안과 맞지 않는 판례를 스스로 배제**했습니다. 후자는 프롬프트의 무관 판례 배제 지침이 작동한 결과입니다.
-
-`sources`는 답변 아래 목록으로 표시되며, 항목에 마우스를 올리면 오른쪽 패널에 조문 원문이 그대로 뜹니다. 이 자료는 이미 모델 컨텍스트에 있던 것이라 **추가 토큰이 들지 않습니다.**
-
----
-
-## 데이터 파이프라인
-
-```
-[생활법령]  csm_catalog.json
-              → download.py        PDF 280건 다운로드
-              → parse_pdfs.py      섹션 단위 파싱 → data/qa_documents.json
-              → build_qa_vectordb.py → var/chroma_qa (21,610청크)
-
-[법령·판례] 국가법령정보센터 API
-              → app/vectordb.py    조문/판례 수집·임베딩 → var/chroma_persist
-                 · manifest로 변경분만 갱신
-                 · 법령: 조문번호 + 가지번호로 식별 (제148조의2)
-                 · 판례: 참조법령(JO) + 기간으로 검색, 대법원만 필터
-```
-
-수집 시 고려한 것들입니다.
-
-- **페이징** — `display` 상한이 100이라 형법(156건)·민법(285건) 등은 한 번에 못 받습니다. `totalCnt`를 보고 끝까지 페이징합니다.
-- **재시도** — law.go.kr이 부하 시 정상 요청에도 간헐적으로 404를 반환합니다. 404/429/5xx는 지수 백오프로 재시도하고 그 외 4xx는 즉시 실패시킵니다.
-- **배치 적재** — Chroma의 1회 적재 상한이 5,461건이라 민법 판례(10,987청크) 같은 경우 나눠서 넣습니다.
-- **중단 복구** — manifest를 법령 단위로 저장해, 중간에 실패해도 재실행 시 중복 적재가 없습니다.
-
----
-
-## 평가
-
-LangSmith 기반으로 5개 지표를 측정합니다.
-
-| 평가자 | 측정 대상 |
+| | |
 |---|---|
-| `tool_usage` | 기대 도구를 실제로 호출했는가 (recall) |
-| `tool_precision` | 불필요한 도구까지 부르지 않았는가 (precision) |
-| `citation_grounding` | 답변이 인용한 조문·사건번호가 **검색 결과에 실재했는가** |
-| `citation_recall` | 정답 조문·법정형(`expected_citations`)을 답변이 담았는가 |
-| `answer_quality` | LLM-judge — 정확성·충실성·실용성·명료성 (0~100 정규화) |
+| **Stack** | LangGraph · Chroma · FastAPI(SSE) · Docker → GHCR → EC2 |
+| **Data** | 법조문 5,390청크 · 판례 3,138건(29,820청크) · 생활법령 21,610청크 |
+| **Eval** | `answer_quality 0.912` · `citation_grounding 0.984` · `tool_recall 1.000` |
+| **설계** | LangSmith로 단일/멀티 에이전트 3개 구조를 비교 후 single 채택 |
 
-뒤의 두 규칙 기반 평가자는 judge가 조문 번호·형량을 보지 못해서 추가했습니다. 근거는 아래 "judge가 못 보는 층" 참고.
+가장 큰 교훈은 검색 인프라를 총동원한 개선(+0.031)보다 **모델 교체 한 번(+0.128)이 4배 컸다**는 것,
+그리고 **1회 실행 측정으로는 개선과 노이즈를 구분할 수 없다**는 것이었습니다.
 
-```bash
-uv run python eval/upload_dataset_single.py   # 데이터셋 업로드·갱신
-uv run python eval/run_eval_single.py         # 3회 반복 평가
-```
+<br/>
 
-`upload_dataset_single.py`는 기존 문항을 건너뛰지 않고 **outputs를 갱신**합니다. 건너뛰기만 하면 rubric이나 `expected_citations`를 고쳐도 반영되지 않습니다.
+### 📄 [카카오 약관 QA 시스템](https://github.com/HojuneLee0106/Performance_Improvement_Contest) <sub>KTB 성능 개선 대회 최우수상</sub>
 
-### 데이터셋 (12문항)
+카카오 약관 4종에서 질문에 해당하는 조항을 찾아 **답변과 근거 조항을 함께** 반환하는 RAG.
+Google Colab T4 한 대, 외부 API 없이 동작합니다.
 
-5개 도메인을 모두 커버하고, **단일 도구만 써야 정답인 문항**(출생신고 → `search_qa`만)을 섞어 과잉 검색이 드러나도록 구성했습니다. 도구 분포는 `search_law` 11 / `search_qa` 9 / `search_case` 3입니다.
-
-`outside_domain` 2문항(동물보호법·저작권법)은 **`LAW_DOMAINS` 밖 법률의 처벌 질문**입니다. 조문 원문이 없는 상태에서 생활법령(넓이 층)의 조문번호·법정형을 끌어오는지를 봅니다.
-
-`expected_citations`는 12문항 전부 국가법령정보센터 원문과 대조해 채웠습니다. `mix-6`의 `제3조`처럼 흔한 번호는 다른 법령에도 걸릴 수 있어 근사치이며, 실제 판단은 점수가 아니라 평가자가 남기는 누락 목록을 봅니다.
-
-### 현재 성능 (문항당 3회 반복)
-
-운영 구성(`claude-sonnet-5` + `effort=low`) 기준입니다. 모델 비교는 10문항 시절 수치라, 검색 개선 이후 값과 함께 놓습니다.
-
-| 지표 | Haiku 4.5 | Sonnet 5 | Sonnet 5 + low | **+ 검색 개선 (현재)** |
-|---|---:|---:|---:|---:|
-| tool_usage (recall) | 1.000 | 1.000 | 1.000 | **1.000** |
-| tool_precision | 0.917 | 0.663 | 0.696 | **0.718** |
-| answer_quality | 0.787 | 0.915 | 0.903 | **0.912** |
-| latency (로컬) | 9.5s | 33.3s | 20.5s | **20.5s** |
-
-12문항 전체로는 `answer_quality` 0.888, `citation_grounding` 0.984, `citation_recall` 0.810입니다. 신규 2문항이 평균을 끌어내리므로 위 표는 기존 10문항만으로 비교했습니다.
-
-모델 교체가 가장 큰 폭의 개선이었습니다. 검색 인프라 개선(판례 29배 확대, 조문 인용 수정)이 0.756 → 0.787이었던 반면, 모델 교체만으로 0.787 → 0.915가 되었습니다. `effort=low`는 품질 손실이 측정 편차(0.056) 안쪽인 반면 지연을 38% 줄여 채택했습니다.
-
-`tool_precision` 하락은 Sonnet 5가 도구를 더 많이 호출하기 때문입니다. recall이 1.000이고 품질이 전 문항 상승했으므로 과잉 검색이 결과를 해치지는 않으며, 데이터셋의 `expected_tools`가 최소 집합 기준이라는 측면도 있습니다.
-
-문항 내 편차는 평균 0.062, 문항 간 표준편차는 0.127입니다. **품질을 좌우하는 것은 실행 편차가 아니라 문항 자체**이며, 개선 효과를 판단하려면 반복 측정이 필수입니다.
-
-> 문항당 1회 실행으로는 실행 편차와 실제 개선을 구분할 수 없습니다. 개선 전후를 비교할 때는 반드시 `NUM_REPETITIONS`를 유지하세요.
-
----
-
-## 실험 기록
-
-측정은 모두 같은 10문항 데이터셋으로 했습니다. **v1~v5는 문항당 1회 실행**이라 실행 편차와 실제 개선을 구분할 수 없어 추세 참고용이고, **rep3 이후가 문항당 3회 실행**한 신뢰 가능한 수치입니다.
-
-| # | 구성 | quality | precision | recall | latency |
-|---|---|---:|---:|---:|---:|
-| v1 | Haiku 4.5, 판례 107건, temperature 미설정 | 0.756 | 0.833 | 0.917 | 9.5s |
-| v2 | + 판례 561건, 스트리밍·프롬프트 수정 | 0.768 | 0.900 | 0.917 | 9.0s |
-| v3 | + 조문 가지번호 수정 | 0.739 | 0.900 | 0.917 | 9.0s |
-| v4 | + 판례 3,138건 | 0.765 | 0.900 | 0.917 | 9.0s |
-| v5 | + 도구 지침 수정 | 0.724 | 0.884 | **1.000** | 10.1s |
-| rep3 | v5와 동일 구성, **3회 반복** | 0.736 | 0.906 | 1.000 | 9.5s |
-| rep3b | + 무관 판례 배제 지침 | 0.787 | 0.917 | 1.000 | 9.5s |
-| sonnet5 | **Sonnet 5** (effort 기본) | **0.915** | 0.663 | 1.000 | 33.3s |
-| sonnet5-low | Sonnet 5 + effort=low | 0.903 | 0.696 | 1.000 | 20.5s |
-| qa-fix | + 생활법령 카테고리 필터 제거, 도구 설명 확장 | 0.895 | 0.707 | 1.000 | 26.5s |
-| **운영** | **+ 근거 명시·벌칙 검색어 지침** | **0.912** | **0.718** | 1.000 | 20.5s |
-
-아래는 12문항 데이터셋으로 규칙 기반 평가자까지 붙여 측정한 것입니다. 위 표와 문항 수가 달라 `quality`를 직접 비교할 수 없습니다.
-
-| # | 구성 | quality | cite_recall | grounding | precision | latency |
-|---|---|---:|---:|---:|---:|---:|
-| **채택** | 운영 구성 (`search_law` k=3) | **0.888** | **0.810** | **0.984** | 0.710 | 20.5s |
-| 폐기 | + `search_law` k=6 | 0.887 | 0.819 | 0.968 | 0.696 | 22.7s |
-| 폐기 | + k=6 + "쟁점을 전부 검색어에" | 0.877 | 0.764 | 0.959 | 0.761 | 22.0s |
-
-### 무엇이 실제로 효과가 있었나
-
-**모델 교체가 압도적이었습니다.** 검색 인프라를 총동원해 개선한 폭(0.756 → 0.787, **+0.031**)보다, 모델을 바꾼 한 번의 변경(0.787 → 0.915, **+0.128**)이 4배 컸습니다. Sonnet 5로 바꾸자 **10문항 전부** 품질이 올랐고 하락한 문항이 하나도 없었습니다.
-
-이 프로젝트에서 가장 값진 교훈입니다. 검색할 자료를 아무리 잘 갖춰도 모델이 그것을 활용하지 못하면 한계가 있고, 반대로 자료가 없으면 좋은 모델도 답할 수 없습니다. 순서로 보면 **자료 정확성 확보 → 도구 선택 안정화 → 모델 상향**이 맞았습니다.
-
-**도구 선택은 프롬프트로 완전히 해결됐습니다.** recall이 0.917 → 1.000이 되어 10문항 모두 기대 도구를 빠짐없이 호출합니다.
-
-**품질 지표는 프롬프트에 잘 반응하지 않았습니다.** v1~v5에서 0.72~0.77 사이를 오갔을 뿐 방향성이 없었습니다. 유일하게 유의미했던 프롬프트 개선은 rep3 → rep3b(+0.052)인데, 이것도 하위 두 문항(law-1 0.443→0.657, mix-1 0.610→0.837)을 콕 집어 고친 결과입니다.
-
-### 1회 실행으로는 아무것도 판단할 수 없었다
-
-v3에서 품질이 0.768 → 0.739로 떨어졌지만, 이는 개선이 실패한 것이 아니라 **측정이 부정확했던 것**입니다. 같은 구성으로 3회 반복하니(rep3) 0.736이 나왔고, 문항 내 편차가 평균 0.048에 불과했습니다. 즉 **v1~v5의 등락 대부분이 노이즈**였습니다.
-
-| 구분 | 값 |
+| | |
 |---|---|
-| 문항 내 편차 (같은 문항 3회) | 0.048 ~ 0.062 |
-| 문항 간 표준편차 | 0.127 |
-| judge 자체 편차 (동일 답변 5회 채점) | σ = 0.004 ~ 0.015 |
+| **성과** | KTB 4기 AI 성능 개선 대회 · 13팀 · **예선 87.138 / 100** |
+| **세부** | 검색 MRR `1.0000` · 키팩트 F1 `0.6638` · LLM 판정 `94.450` |
+| **검증** | 공개 10문항 검색 recall 12/12 · precision 12/12 |
 
-judge는 매우 일관적이므로 변동의 원인은 채점이 아니라 **에이전트의 생성**입니다. 그리고 문항 간 편차가 문항 내 편차의 2.6배이므로, **품질을 좌우하는 것은 실행 운이 아니라 문항 자체**입니다.
+<br/>
 
-### 3회 반복도 안전하지 않다
+### 🔊 AI Docent Studio <sub>캡스톤디자인 · 2025.09 ~ 2025.12</sub>
 
-에이전트 코드를 전혀 건드리지 않고 평가자만 추가한 뒤 12문항 × 3회를 다시 돌린 적이 있습니다. **같은 구성의 순수 재현 측정**인데 이만큼 흔들렸습니다.
+사용자 맞춤형 **TTS 모델(VITS)** 제작. 도슨트 음성을 개인화하는 프로젝트로, **RISE 사업 체결**로 이어졌습니다.
 
-| 지표 | 1차 | 2차 (동일 구성) |
-|---|---:|---:|
-| answer_quality | 0.897 | 0.888 |
-| tool_usage | **0.977** | **1.000** |
-| tool_precision | 0.687 | 0.710 |
-| latency | 23.2s | 20.5s |
+`VITS` `PyTorch` `Speech Synthesis`
 
-1차의 `tool_usage` 0.977은 `law-2`와 `mix-6`이 3회 중 1회씩 `search_law`를 빠뜨린 결과였습니다. 당시 이것을 **실재하는 회귀로 판단했는데 틀렸습니다** — 같은 코드로 다시 돌리니 1.000이었습니다.
+<br/>
 
-지연은 더 심합니다. 같은 코드에서 20.5s와 23.2s가 나옵니다. **지연 2~3초 차이는 근거로 쓸 수 없습니다.**
+### 🏋️ AI 헬스 자세 교정 어플리케이션 <sub>캡스톤디자인 · 2025.03 ~ 2025.06</sub>
 
-교훈은 이렇습니다. 3회 반복은 문항 내 편차를 보여줄 뿐 전체 평균의 안정성을 보장하지 않습니다. 특히 `tool_usage`처럼 값이 몇 개(0 / 0.5 / 0.67 / 1.0)로 뭉치는 지표는 한 번의 이탈이 평균을 크게 흔듭니다. **전체 평균이 아니라 문항별 값과 그 이유를 봐야 합니다.**
+**LoRA** 기법으로 파인튜닝한 헬스케어 맞춤 챗봇. 운동 도메인에 특화된 응답을 생성하도록 경량 학습했습니다.
 
-### 실패한 실행을 걸러내지 않으면 지표가 거짓말을 한다
+`LoRA` `PEFT` `FastAPI`
 
-평가 도중 Anthropic 워크스페이스 사용 한도가 소진돼 36실행 중 7개가 빈 응답으로 끝난 적이 있습니다.
+<br/>
 
-```
-BadRequestError: You have reached your specified workspace API usage limits.
-```
+### 🧠 [miniGPT · 한국어 QA](https://github.com/HojuneLee0106/Chatbot)
 
-빈 응답은 도구를 하나도 호출하지 않은 것으로 집계되어, `tool_usage`가 1.000 → 0.767로 찍혔습니다. **지표만 보면 프롬프트 수정이 도구 선택을 망가뜨린 것처럼 보입니다.** 실제로는 API가 죽은 것이었습니다.
+GPT 구조를 처음부터 직접 구현해 한국어 QA 데이터로 학습.
+`CausalSelfAttention`부터 학습 루프까지 라이브러리 없이 짜면서 트랜스포머 내부를 이해하는 게 목적이었습니다.
 
-`run.error`가 있는 실행을 먼저 세고 제외한 뒤에 평균을 내야 합니다. 결과를 해석하기 전에 실패 건수를 확인하는 것이 첫 단계입니다.
-
-### 일관성 실험
-
-temperature를 지정하지 않으면 Anthropic 기본값 1.0이 적용된다는 것을 발견하고 측정했습니다.
-
-| 문항 | temperature 1.0 | temperature 0 |
-|---|---|---|
-| mix-1 | [0.41, 0.68, 0.71] 편차 **0.30** | [0.47, 0.45, 0.45] 편차 **0.02** |
-| law-2 | [0.84, 0.75, 0.60] 편차 **0.24** | [0.73, 0.58, 0.85] 편차 **0.27** |
-
-mix-1은 극적으로 안정됐지만 law-2는 그대로였습니다. 도구 호출 인자를 추적해 보니 **temperature 0에서도 검색어가 실행마다 달랐습니다.**
-
-```
-실행 1: search_law(query='유언 상속 제외 상속인 권리',      domain='civil')
-실행 2: search_law(query='유언 상속 최소한의 상속분 유류분', domain='civil')
-```
-
-실행 1은 "유류분"이라는 핵심 용어 없이 검색했습니다. 프롬프트에 "쟁점 용어를 반드시 검색어에 넣으라"는 지침을 추가하고 나서야 도구 호출이 실행 간 완전히 일치했습니다. **두 가지를 함께 적용해야 효과가 났습니다.**
-
-### 모델 비교 상세
-
-| 지표 | Haiku 4.5 | Sonnet 5 | Sonnet 5 + low |
-|---|---:|---:|---:|
-| answer_quality | 0.787 | 0.915 | 0.903 |
-| tool_precision | 0.917 | 0.663 | 0.696 |
-| tool_usage | 1.000 | 1.000 | 1.000 |
-| latency 평균 | 9.5s | 33.3s | 20.5s |
-| latency 중앙값 | 9.2s | 21.9s | 20.1s |
-| 문항 내 편차 | 0.062 | 0.042 | 0.056 |
-| 도구 조합 3회 일치 | 10/10 | 8/10 | 9/10 |
-
-`effort=low`를 채택한 근거는 **품질 손실(−0.012)이 문항 내 편차(0.056) 안쪽**인 반면 지연이 38% 줄기 때문입니다. 평균과 중앙값 차이도 좁혀져(33.3/21.9 → 20.5/20.1) 응답 시간이 더 예측 가능해졌습니다.
-
-`tool_precision` 하락은 Sonnet 5가 도구를 더 많이 호출해서입니다. recall 1.000에 품질이 전 문항 상승했으므로 과잉 검색이 결과를 해치지는 않으며, 데이터셋의 `expected_tools`가 최소 집합 기준이라는 측면도 있습니다.
-
-### Sonnet 5 전환 시 부딪힌 API 차이
-
-두 가지가 그대로 두면 전부 실패합니다.
-
-1. **비기본값 `temperature` 거부** — `temperature=0`을 넘기면 400. Haiku에서 일관성 확보의 핵심이던 설정이라 그대로 옮길 수 없었습니다.
-2. **thinking 기본 활성화** — 응답에 빈 thinking 블록이 실리고, 이를 도구 루프에서 되돌려 보낼 때 `thinking.thinking: Field required` 400이 납니다.
-
-`build_llm`에서 모델 접두사로 분기해 해결했습니다. 다행히 temperature 없이도 문항 내 편차는 0.042로 오히려 Haiku보다 안정적이었습니다.
-
-### 성능 병목 측정
-
-체감상 특정 질문만 느리다는 관찰에서 출발해 구간별로 측정했습니다.
-
-| 구간 | 로컬 | EC2 | 배율 |
-|---|---:|---:|---:|
-| 임베딩 1회 | 15ms | 96ms | 6배 |
-| 검색 (법령 5,390청크) | 27ms | 196ms | 7배 |
-| 검색 (판례 29,820청크) | 90ms | **3,642ms** | **40배** |
-
-법령이 7배인데 판례만 40배라는 비대칭이 **메모리 병목의 증거**입니다. CPU만 느린 것이라면 배율이 비슷해야 합니다. 2GB 인스턴스에서 판례 인덱스가 RAM에 올라가지 않아 디스크에서 읽습니다.
-
-LLM 왕복은 이미 최소입니다 — 도구를 3개 쓰는 문항도 LLM 호출은 2회뿐이고, 도구는 한 턴에 병렬로 호출됩니다.
-
-### 시도했다가 접은 것
-
-**판례 본문(전문) 제거** — 판례가 전체 텍스트의 94%를 차지하고 한 판례가 최대 167청크까지 가서, 전문을 빼고 판시사항·판결요지만 남기는 안을 검토했습니다. 측정해 보니 폐기해야 했습니다.
-
-```
-판결요지가 비어있는 판례: 2,869건 (91%)
-둘 다 비어있는 판례:     1,282건 (41%)  ← 전문 빼면 사건명만 남음
-검색 히트가 전문부에서:   87%
-```
-
-국가법령 API가 대법원 판례 대부분에 판결요지를 제공하지 않습니다. 전문을 빼면 판례 41%가 빈 문서가 되고 실제 검색되는 내용의 87%가 사라집니다.
-
-**청크 상한** — 판례당 청크 수를 제한하는 대안도 검토했으나, 상위 1%(31건)가 전체 청크의 8.2%를 차지할 만큼 편중돼 있어 `cap=10`을 걸어도 77% 수준까지만 줄어 실효가 없었습니다.
-
-**멀티에이전트 라우팅** — `current`/`shared` variant로 supervisor 라우팅을 구현해 비교했으나, 케이스가 2종류뿐인 상황에서 라우팅 오분류 위험이 이득보다 커 `single`을 택했습니다.
-
-### 프롬프트 수정의 시행착오
-
-프롬프트 수정은 되돌아오는 비용이 큽니다. 판례 무관성 지침을 넣을 때 4번 시도했는데 초기 2번은 오히려 나빠졌습니다.
-
-1. 도구 지침 문장에서 `search_case`를 실수로 삭제 → law-2·mix-6에서 판례 검색 누락
-2. 새로 만든 `[절차 안내]` 섹션이 모델을 `search_qa` 쪽으로 기울임 → 같은 문제 재발
-3. "조문에 답이 적혀 있는 질문" 배제 조건이 유류분(제척기간)까지 걸러냄
-4. 문구를 좁히고 답변 작성 규칙 안으로 이동 → 기준선 복구
-
-전체 평가는 비용과 시간이 들기 때문에, **7문항 단발 실행으로 도구 선택만 먼저 확인하는 사전 점검**을 앞에 두는 편이 효율적이었습니다.
-
-
-## 배포
-
-`main` 브랜치 푸시 시 GitHub Actions가 Docker 이미지를 빌드해 GHCR에 올리고, EC2에 SSH로 접속해 컨테이너를 재기동합니다.
-
-```
-push → build → GHCR → EC2 (stop → rm → prune → pull → run)
-```
-
-### 볼륨 구조
-
-`var/` 하위 런타임 상태는 이미지에 포함되지 않고 **EC2 호스트 볼륨으로 마운트**됩니다.
-
-| 호스트 | 컨테이너 |
+| | |
 |---|---|
-| `/home/ubuntu/app_data` | `/app/var` |
-| `/home/ubuntu/chroma_data/chroma_persist` | `/app/var/chroma_persist` |
-| `/home/ubuntu/chroma_data/chroma_qa` | `/app/var/chroma_qa` |
+| **Config** | `block_size=1024` · `n_embd=512` · `n_head=8` · `n_layer=8` |
+| **결과** | `val loss 3.022` (A100 80GB) |
 
-DB는 파일이 아니라 **디렉터리를 통째로** 마운트합니다. chroma 두 개는 그 위에 겹쳐 마운트되는데, Docker가 목적지 깊이 순으로 적용하므로 중첩이 동작합니다.
+<br/>
 
-#### 파일 단위 마운트가 대화 이력을 날려먹었다
+### 💬 [커뮤니티 서버](https://github.com/HojuneLee0106/Community_server)
 
-원래는 `users.db`·`checkpoints.db`를 파일 하나씩 마운트했습니다. 이것이 **배포할 때마다 대화 내용을 지우고 있었습니다.**
+FastAPI 게시판 API. Router / Controller / Model 계층 분리 + MySQL 연동,
+Ollama(`gemma2`)로 글·댓글 자동 요약을 붙였습니다.
 
-```
-checkpoints.db  journal_mode = wal      ← langgraph AsyncSqliteSaver 가 켠다
-users.db        journal_mode = delete   ← 평범한 sqlite3
-```
-
-WAL 모드에서 SQLite는 실제 쓰기를 옆의 `checkpoints.db-wal`에 쌓았다가 나중에 본 파일로 합칩니다. 그런데 파일 단위로 마운트하면 그 `-wal`·`-shm`이 **컨테이너 안에만** 생깁니다. 배포 스크립트의 `docker rm -f`는 SIGKILL이라 SQLite가 WAL을 합칠 틈도 없이 컨테이너가 파괴되고, 아직 합쳐지지 않은 이력이 함께 사라집니다.
-
-`users.db`는 WAL이 아니라 무사했습니다. 그래서 증상이 **"대화 목록은 그대로인데 열어보면 내용이 없다"** 였습니다. 프론트엔드의 `catch (e) {}`가 조용해서 에러도 안 보였습니다.
-
-디렉터리를 마운트하면 `-wal`이 호스트에 생겨 컨테이너가 죽어도 남습니다. 이미 소실된 이력은 복구할 수 없습니다.
-
-### 벡터DB 갱신은 배포와 별개입니다
-
-**재배포만으로는 새 벡터DB가 반영되지 않습니다.** 로컬에서 재구축한 뒤 직접 전송해야 합니다.
-
-```bash
-ssh -i <key.pem> ubuntu@<host> "docker stop online-law"
-
-rsync -avz --delete --partial --progress -e "ssh -i <key.pem>" \
-  var/chroma_persist/ ubuntu@<host>:/home/ubuntu/chroma_data/chroma_persist/
-
-ssh -i <key.pem> ubuntu@<host> "docker start online-law"
-```
-
-`--delete`가 필요한 이유는 Chroma가 컬렉션마다 UUID 폴더를 만들기 때문입니다. 이전 폴더가 남으면 `chroma.sqlite3`가 참조하지 않는 고아 파일이 됩니다.
+> 200줄짜리 `main.py` 하나를 계층별로 쪼개보고 나서야, 왜 남들이 파일을 나누는지 이해했습니다.
 
 ---
 
-## 설계 기록
-
-주요 문제와 해결 과정입니다.
-
-### 조문 가지번호 누락 (590건 이상)
-
-국가법령정보센터 API는 개정으로 추가된 조문을 `조문번호`와 `조문가지번호`로 나눠서 줍니다.
-
-```
-조문번호=148, 가지번호=None → 제148조
-조문번호=148, 가지번호=2    → 제148조의2
-조문번호=148, 가지번호=3    → 제148조의3
-```
-
-`조문번호`만 읽고 있어서 셋 다 "제148조"로 저장됐습니다. 음주운전 처벌을 물으면 실제 근거인 제148조의2 대신 엉뚱한 조문이 출처로 붙었습니다. 형사소송법 117건, 민법 75건, 도로교통법 48건 등 **최소 590개 조문**이 영향을 받았고, `민법 제959조` 하나에 제959조의2~의20까지 20개 조문이 뭉쳐 있었습니다.
-
-가지번호를 반영하도록 고치면서, 법령이 개정되지 않으면 `mst:efYd`가 그대로라 재임베딩이 스킵되는 문제가 있어 `LAW_SCHEMA_VERSION`을 manifest 키에 포함시켰습니다.
-
-### 내부 진행 상황 노출
-
-세 가지가 사용자 답변에 섞이고 있었습니다.
-
-1. **요약 노드 출력** — `astream_events`가 노드 구분 없이 모든 LLM 토큰을 내보내, 대화가 20개를 넘어 요약이 도는 순간 요약문이 답변 앞에 찍혔습니다.
-2. **도구 호출 턴의 텍스트** — "검색하겠습니다" 류가 그대로 노출됐습니다.
-3. **최종 답변의 프리앰블** — "완벽합니다. 이제 답변드리겠습니다."
-
-1·2는 노드 필터와 `reset` 이벤트로, 3은 프롬프트로 해결했습니다. 3은 프롬프트를 두 번 고쳐야 잡혔는데, 처음엔 "도구 호출 **전**"만 금지해서 결과 수신 **후**의 코멘트가 안 걸렸기 때문입니다.
-
-### 판례 커버리지
-
-초기 수집 기간이 2026년 상반기뿐이라 판례가 107건, traffic 도메인은 **1건**이었습니다. `search_case`가 사실상 동작하지 않는 상태였습니다.
-
-2020년부터로 확대해 3,138건이 됐고(traffic 108건, housing 61건), 평가에서 처음으로 답변에 실제 사건번호(`2022도3792`, `2020도15812`)가 인용되기 시작했습니다.
-
-### 대기 구간 UX
-
-Sonnet 5 전환으로 첫 토큰까지 20초 안팎이 걸리게 되면서, 그동안 빈 말풍선만 보이는 문제가 생겼습니다.
-
-`on_tool_start` 이벤트를 SSE `status`로 내보내 무엇을 하는 중인지 표시합니다. 도구가 병렬 실행되므로 동시에 도는 작업을 함께 보여줍니다.
-
-```
-3.1s  생활법령 자료를 확인하는 중입니다 · 관련 법조문을 찾는 중입니다···
-6.1s  전세 보증금을 못 받고 있다면 다음과 같이 대응할 수 있습니다...
-```
-
-모델이 도구 호출 전 프리앰블을 뱉으면 `reset`으로 지우는데, 그 직후 1초가량 빈 말풍선이 남아 "질문을 살펴보는 중입니다"로 채웠습니다.
-
-### 생활법령(넓이 층)이 가려져 있던 문제
-
-길고양이를 죽인 뒤 처벌 여부를 묻는 질문에서, 답변이 조문 번호도 법정형도 없이 "징역형까지 가능한 무거운 범죄"라고만 뭉뚱그렸습니다. 처음에는 **동물보호법이 `LAW_DOMAINS`에 없어서**라고 진단했는데 틀렸습니다. 정답은 이미 생활법령 벡터DB에 있었습니다.
-
-```
-위 사항을 위반한 사람은 3년 이하의 징역 또는 3천만원 이하의 벌금에 처해집니다
-(「동물보호법」 제97조제1항제1호).
-```
-
-이 프로젝트는 사실상 2층 구조입니다. **깊이 층**(`chroma_persist`)은 29개 법령의 조문 원문(전체 5,601개 중 0.5%)이고, **넓이 층**(`chroma_qa`)은 생활법령 281개 콘텐츠가 **2,528개 법률을 조문번호·법정형까지 달아** 인용합니다. 법령을 전부 넣을 수 없다는 문제의 답이 넓이 층인데, 그 층이 두 가지 이유로 가려져 있었습니다.
-
-**1. `category` 필터가 정답을 걸러냈습니다.** 법제처 분류가 사용자 어휘와 어긋납니다.
-
-| 질문 | 모델이 고른 분류 | 정답이 있는 분류 |
-|---|---|---|
-| 고양이를 죽였는데 처벌받나요 | 사회안전/범죄 | 복지 · 문화/여가생활 |
-| 중고거래 사기 고소 | 민형사/소송 | 소비자 |
-
-`중고거래 사기 고소`는 필터를 걸면 거리가 65 → 145로 악화됩니다. 필터를 없애니 두 경우 모두 상위 3건 안에 정답이 들어왔고, Chroma 메타데이터 사전필터링이 사라져 검색도 41ms → 12ms로 빨라졌습니다.
-
-**2. 도구 설명이 넓이 층을 절차 전용으로 가뒀습니다.** `search_qa`가 "절차·대처 방법 안내가 필요할 때"로만 소개돼 있어, "처벌받나요?" 질문에서 모델이 지침대로 도구를 건너뛰었습니다. 5개 도메인 밖 법률의 처벌·책임 질문에서는 넓이 층이 통째로 보이지 않았던 셈입니다. 설명을 고치자 동물보호법 제10조·제97조가 3/3 인용됐습니다.
-
-### 근거가 없을 때 그것을 밝히기
-
-원래 프롬프트는 `확인되지 않으면 수치를 빼고 설명하세요`였는데, 이것이 **"처벌이 상당히 무겁습니다"** 같은 형용사 회피를 만들어냈습니다. 안전하지만 사용자가 근거 있는 답변과 구분할 수 없어 더 위험합니다.
-
-밝히도록 바꾸고, 반대로 근거가 있으면 법정형까지 그대로 옮기라는 문장을 함께 넣었습니다. 저작권법 질문에서 근거 명시가 0/3 → 3/3이 됐고, 근거가 있는 답변(동물보호법·형법)에 과잉 회피가 붙는 부작용은 없었습니다.
-
-### 실패한 검색은 세 갈래였다
-
-같은 증상("법적 근거가 빠진 답변")의 원인이 셋이고, 빈도가 다릅니다.
-
-| 원인 | 지표 | 빈도 |
-|---|---|---|
-| 있는 조문을 못 찾는다 | `citation_recall` 0.810 | 가장 흔함 |
-| 찾았는데 답변에 안 쓴다 | `mix-6`: grounding 1.000 / recall 0.167 | 중간 |
-| 없는 조문을 지어낸다 | `citation_grounding` 0.984 | 드묾 (85건 중 1~3건) |
-
-**조문을 지어내는 것보다 있는 조문을 못 찾는 것이 5배 이상 흔합니다.** 못 찾는 이유는 검색 성능이 아니라 검색어입니다 — 모델이 "합의"·"대처" 같은 절차 단어로 검색해 벌칙 조문을 놓칩니다. 검색어에 `벌칙`·`처벌 징역 벌금`을 넣게 하자 `law-1`(음주운전)이 0.700 → 0.897로 올랐습니다.
-
-### judge가 못 보는 층
-
-저작권법 문항에서 rubric이 명시적으로 요구한 항목(제136조·법정형)이 0/3 → 3/3으로 개선됐는데 **judge 점수는 0.770 → 0.750으로 내려갔습니다.** 두 번의 독립 실행에서 모두 그랬습니다.
-
-`mix-6`은 더 뚜렷합니다 — `answer_quality` 0.923인데 `citation_recall` 0.167입니다. 교통사고처리 특례법 제3조·제4조를 거의 인용하지 않는데도 judge는 훌륭한 답변으로 봅니다. 두 지표가 서로 무관하게 움직입니다.
-
-judge는 구조·실용성·읽기 쉬움을 봅니다. 법률 답변의 핵심인 "이 조문 번호가 맞나"는 못 봅니다. 그래서 규칙 기반 평가자를 붙였습니다. 조문 인용은 답변에서 `(법령명, 제N조)` 쌍과 사건번호를 뽑아 검색 결과 텍스트와 대조합니다.
-
-### 되돌린 실험: `search_law` k 인상
-
-`law-2`(유류분)에서 민법 제1117조(소멸시효)가 3/3 누락이었습니다. 조문은 벡터DB에 있고 `유류분 반환청구 소멸시효 기간`으로 검색하면 1순위로 나옵니다. 그런데 모델은 `유류분 반환청구`로 검색합니다 — 프롬프트의 예시(`유언으로 한 자녀만 상속 -> '유류분'`)가 그렇게 가르치고 있었습니다.
-
-`k=3`에서는 검색어를 고쳐도 **맞바꾸기**가 됩니다.
-
-```
-k=3  유류분 반환청구                 -> 제1115조만
-k=3  유류분 반환청구 소멸시효 기간     -> 제1117조만   (제1115조를 잃음)
-k=6  유류분 반환청구 소멸시효 기간     -> 둘 다
-```
-
-그래서 `k=6`과 검색어 지침을 순서대로 시도했는데 **둘 다 폐기했습니다.**
-
-- `k=6` 단독: `citation_recall` +0.009(노이즈), 입력 토큰만 호출당 2,500개 증가. 모델의 실제 검색어에는 k를 올려도 제1117조가 안 들어옴
-- `k=6` + "쟁점을 전부 검색어에": `law-2`는 0.500 → 0.667로 올랐지만 `mix-2` 1.000 → 0.667, `mix-3` 0.833 → 0.500, `mix-6` 0.333 → 0.000. 전체 `citation_recall` 0.810 → 0.764
-
-검색어를 길게 만들라는 지시가 단일 쟁점 질문에서 핵심 용어를 희석시킨 것으로 보입니다. 프롬프트 수정이 역효과를 낸 세 번째 사례이며, 이번에는 `citation_recall` 덕분에 **어느 문항이 왜 무너졌는지 즉시 보였습니다.** 이전 같으면 `quality` 0.888 → 0.877만 보고 노이즈로 넘겼을 것입니다.
-
-### 지인 체험에서 나온 문제들
-
-배포 후 지인들이 써 보면서 드러난 것들입니다. 평가 데이터셋으로는 잡히지 않는 종류였습니다.
-
-**대화가 20개를 넘으면 영구히 망가졌다**
-
-메시지가 20개를 넘으면 요약 노드가 도는데, 여기서 400이 났습니다.
-
-```
-This model does not support assistant message prefill.
-The conversation must end with a user message.
-```
-
-`messages[:cut]` 조각을 그대로 LLM에 넘기고 있었고, 그 조각의 끝이 `AIMessage`면 Sonnet 5가 거부합니다. 요약은 **매 요청마다** 돌기 때문에 한 번 걸린 대화는 이후 무엇을 물어도 계속 실패했습니다. 한 턴에 5~6개 메시지가 쌓이므로 **4턴만 넘기면 진입**합니다.
-
-같은 코드에 두 번째 지뢰도 있었습니다. 조각의 끝이 도구를 호출한 `AIMessage`면 짝이 되는 `ToolMessage`가 잘려나가 `tool_use`만 남습니다. 이것도 400입니다.
-
-요약에는 메시지 구조가 필요 없고 내용만 있으면 되므로, 평문 대화록으로 펼쳐 사용자 메시지 하나로 보내도록 고쳤습니다. 두 문제가 함께 사라집니다.
-
-**도구 호출이 텍스트로 새어 나왔다**
-
-답변 자리에 `<invoke name="search_law">...` 가 그대로 찍힌 사례가 있었습니다. [main.py](app/main.py)의 필터는 `chunk.tool_call_chunks`가 있을 때만 도구 호출 턴으로 판정하는데, 모델이 같은 내용을 **구조화된 블록이 아니라 텍스트로** 뱉으면 그냥 통과합니다.
-
-같은 질문으로 3회 재현을 시도했으나 전부 정상이라 **원인은 미확정**입니다. 짚이는 것은 Sonnet 5가 `temperature=0`을 거부해 기본 샘플링으로 도는 점, 그리고 한 번 새어 나온 XML이 `AIMessage`로 체크포인트에 저장되어 다음 턴에 모델이 자기 출력을 따라 하는 **자기강화** 가능성입니다. 후자라면 표시 필터만으로는 부족합니다.
-
-**마크다운이 그대로 보였다**
-
-답변은 `**굵게**`·`##`·`- 목록`을 쓰는데 프론트가 `textContent`로 넣고 있었습니다. 외부 라이브러리 없이 작은 렌더러를 넣었습니다. **LLM 출력이므로 HTML 이스케이프를 먼저** 하고 우리가 만든 태그만 끼워 넣습니다.
-
-**답변 말풍선이 배경과 구분되지 않았다**
-
-`--bot-bubble: #eef0f3`과 페이지 배경 `--bg: #f4f5f7`이 거의 같은 색이었습니다. 흰색 + 옅은 테두리로 바꿨습니다.
-
-**법률 출처가 잘 보이지 않는다**
-
-원인이 둘입니다. 하나는 실제로 없는 경우(`citation_recall` 0.810)이고, 다른 하나는 있는데 문장 속에 섞여 눈에 안 띄는 경우입니다.
-
-후자를 먼저 손봤습니다. 도구 결과를 `(출처, 본문)` 쌍으로 쪼개 SSE로 함께 내보내고, 답변 아래 목록에서 항목에 마우스를 올리면 **오른쪽 패널에 원문이 그대로** 뜹니다. **추가 토큰이 0입니다** — 이 자료는 이미 모델 컨텍스트에 들어가 있고, 화면에 보여주는 것은 서버→브라우저 구간이기 때문입니다.
-
-프롬프트로 "출처 목록을 써라"고 시키는 대안은 출력 토큰이 100~150개 늘고(실측 약 50토큰/s이므로 2~3초), 이 저장소에서 프롬프트 수정은 역효과 이력이 누적 3회입니다.
-
-다만 **검색됐지만 답변에 쓰이지 않은 자료도 포함**되므로 "이 답변의 근거"가 아니라 "검색한 자료"로 표시합니다.
-
-### 초대 코드 기반 가입 제한
-
-지인만 사용하도록 `/api/register`에 `PASSCODE` 검증을 넣었습니다. 로그인이 아니라 **가입만** 막는 방식이라 초대 코드는 한 번만 입력하면 됩니다.
-
-`PASSCODE`가 비어 있으면(로컬 개발) 검사를 건너뜁니다. 비교는 타이밍 공격에 안전하도록 `secrets.compare_digest`를 쓰되, 한글 코드에서 예외가 나지 않도록 bytes로 인코딩합니다.
+## 🛠 Tech Stack
+
+**AI / ML**
+
+<p>
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+  <img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white"/>
+  <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white"/>
+  <img src="https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white"/>
+  <img src="https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white"/>
+  <img src="https://img.shields.io/badge/CUDA-76B900?style=for-the-badge&logo=nvidia&logoColor=white"/>
+</p>
+
+**LLM / RAG**
+
+<p>
+  <img src="https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white"/>
+  <img src="https://img.shields.io/badge/LangGraph-1C3C3C?style=for-the-badge&logo=langgraph&logoColor=white"/>
+  <img src="https://img.shields.io/badge/LangSmith-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black"/>
+  <img src="https://img.shields.io/badge/Chroma-FF6B6B?style=for-the-badge&logo=chromatic&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white"/>
+</p>
+
+**Backend / Infra**
+
+<p>
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Amazon%20EC2-FF9900?style=for-the-badge&logo=amazonec2&logoColor=white"/>
+  <img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white"/>
+  <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white"/>
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white"/>
+</p>
+
+**Collaboration**
+
+<p>
+  <img src="https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Jira-0052CC?style=for-the-badge&logo=jira&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Confluence-172B4D?style=for-the-badge&logo=confluence&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Figma-F24E1E?style=for-the-badge&logo=figma&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Miro-050038?style=for-the-badge&logo=miro&logoColor=white"/>
+</p>
 
 ---
 
-## 알려진 이슈
+## 📊 GitHub Stats
 
-### 판례 검색 쏠림
+<p align="center">
+  <img height="165" src="https://github-readme-stats.vercel.app/api?username=HojuneLee0106&show_icons=true&include_all_commits=true&count_private=true&hide_border=true&title_color=0A66C2&icon_color=0A66C2" alt="GitHub stats"/>
+  <img height="165" src="https://github-readme-stats.vercel.app/api/top-langs/?username=HojuneLee0106&layout=compact&hide=jupyter%20notebook,html&hide_border=true&title_color=0A66C2" alt="Top languages"/>
+</p>
 
-`search_case`가 k=3으로 뽑을 때 한 판례에서 여러 청크가 나올 수 있습니다. 판례당 평균 9.5청크이고 **최대 167청크**인 사건이 있어, "판례 3개 뽑아줘" 같은 질문에서 한 사건만 나올 수 있습니다.
-
-판례별 1청크만 허용하는 후처리로 완화 가능합니다.
-
-### EC2 메모리 부족으로 인한 검색 지연
-
-2GB 인스턴스에서 판례 벡터 인덱스가 메모리에 올라가지 않아 디스크에서 읽습니다.
-
-| 구간 | 로컬 | EC2 | 배율 |
-|---|---:|---:|---:|
-| 임베딩 1회 | 15ms | 96ms | 6배 |
-| 검색 (법령 5,390청크) | 27ms | 196ms | 7배 |
-| 검색 (판례 29,820청크) | 90ms | **3,642ms** | **40배** |
-
-법령은 7배인데 판례만 40배라는 점이 메모리 병목의 근거입니다. `search_case`를 호출하는 질문만 체감상 느립니다.
-
-인스턴스를 4GB로 올리면 해소될 것으로 보입니다. 판례 본문을 줄이는 방안도 검토했으나, **판결요지가 비어 있는 판례가 91%**이고 검색 히트의 87%가 전문(全文)에서 나와 적용하지 않았습니다.
-
-### 운영 로그가 남지 않는다
-
-`deploy.yml`이 컨테이너에 넘기는 환경변수는 `ANTHROPIC_API_KEY`·`ANTHROPIC_MODEL`·`LLM_EFFORT`·`LLM_PROVIDER` 뿐이고 `LANGSMITH_*`가 없습니다. `.env`는 `.dockerignore`에 있어 이미지에도 들어가지 않습니다. **배포 환경은 LangSmith로 아무것도 보내지 않습니다.**
-
-사용자 질문이 남는 곳은 `checkpoints.db` 하나이며, `scripts/dump_conversations.py`로 조회합니다(임베딩 모델을 올리지 않아 컨테이너 안에서 돌려도 부담이 없습니다).
-
-```bash
-docker exec online-law uv run python scripts/dump_conversations.py --limit 20
-docker exec online-law uv run python scripts/dump_conversations.py --grep invoke --full
-```
-
-추적을 켜려면 `deploy.yml`에 `LANGSMITH_TRACING`·`LANGSMITH_API_KEY`·`LANGSMITH_PROJECT`를 추가하면 됩니다. 다만 **사용자 질문에는 음주운전 재범·부당해고 같은 민감한 내용이 들어가므로**, 서버 밖으로 내보낼지는 별도 판단이 필요합니다.
-
-### 동시 접속은 병목이 아니었다
-
-로컬에서 벡터 검색이 완전히 직렬화된다는 것을 확인하고(동시 8이면 건당 8배) 실사용에서도 그럴 것으로 추정했으나, **배포 서버 실측 결과 동시 3명까지 단독과 차이가 없었습니다.**
-
-| 동시 | 첫 토큰 | 완료 |
-|---:|---:|---:|
-| 1 | 7.0s | 21.5s |
-| 2 | 7.6s | 24.1s |
-| 3 (같은 질문) | 6.4s | 23.1s |
-| 3 (다른 질문) | 6.9s | 21.9s |
-
-검색 직렬화는 실재하지만 전체 22초 중 첫 7초 안에 다 들어가고, 나머지 15초는 API 대기라 요청끼리 겹쳐서 진행됩니다. `scripts/bench_concurrency.py`로 다시 잴 수 있습니다.
-
-측정 자체에서 배운 것도 있습니다. 처음에는 동시 수마다 질문 구성을 다르게 하고 워밍업도 없이 재서 **동시 1이 가장 느리게 나왔습니다.** 동시성을 비교하려면 회전마다 작업량이 같아야 합니다.
-
-### 응답 지연
-
-운영 구성(Sonnet 5 + effort low)의 로컬 지연이 20.5초이고, EC2에서는 판례 검색 3.6초가 더해집니다. 진행 상황 표시로 체감을 완화했지만 근본 해결은 아닙니다.
-
-Haiku 4.5로 되돌리면 9.5초가 되지만 품질이 0.903 → 0.787로 떨어집니다. 인스턴스를 4GB로 올리면 판례 검색 지연이 해소됩니다.
-
-### LLM-judge의 한계
-
-judge가 조문 번호나 형량 수치를 보지 못합니다. rubric에 "조문 번호나 법정형 없이 답하면 큰 감점"이라고 **명시해도** 반영되지 않았습니다. 개선된 답변에 낮은 점수를 준 사례가 두 번의 독립 실행에서 재현됐습니다(위 "judge가 못 보는 층").
-
-`citation_grounding`·`citation_recall`로 그 층을 따로 재고 있지만, judge 자체는 그대로입니다. judge 프롬프트에 조문·법정형 대조 항목을 넣는 것이 남은 개선 방향입니다.
-
-### 있는 조문을 못 찾는 경우가 남아 있다
-
-`citation_recall` 0.810 — 기대 조문의 19%가 답변에 없습니다. 확인된 미해결 사례입니다.
-
-| 문항 | 누락 | 성격 |
-|---|---|---|
-| `law-2` | 민법 제1117조 (3/3) | 검색어가 시효 용어를 안 넣음. k=3에서 제1115조와 맞바꾸기 |
-| `outside-2` | 저작권법 제136조 (2/3) | 벌칙 검색어 지침이 `search_law`에만 적용되고, 자료가 있는 `search_qa`에는 안 먹힘 |
-| `mix-6` | 교통사고처리 특례법 제3조·제4조 | 검색은 됨(grounding 1.000). 답변이 인용을 안 함 |
-
-`outside-2`가 특히 거꾸로입니다 — 벌칙 검색어를 저작권법이 없는 `search_law`에 쓰고, 제136조를 가진 `search_qa`에는 절차 검색어를 씁니다.
-
-프롬프트 수정으로 두 번 시도해 둘 다 실패했습니다(위 "되돌린 실험"). 도구를 쟁점별로 나눠 호출하게 하거나 `search_qa`용 검색어 규칙을 따로 두는 쪽이 남은 방향입니다.
-
-### 기타
-
-- 국가법령정보센터 API 기반 임베딩 결과와 실제 최신 법령 간 정합성 주기적 점검 필요
-- 멀티턴 대화는 평가 데이터셋에서 제외되어 있음 (평가 시 checkpointer 미사용)
-- `build_llm`이 `output_config`를 `model_kwargs`로 넘겨 deprecation 경고가 난다. langchain이 폴백을 걷어내면 **`effort`가 조용히 미적용되면서 운영 구성이 바뀐다**
+<p align="center">
+  <img src="https://streak-stats.demolab.com?user=HojuneLee0106&hide_border=true&ring=0A66C2&fire=0A66C2&currStreakLabel=0A66C2" alt="Streak"/>
+</p>
 
 ---
 
-## 앞으로 할 일
+## 🏅 Activities & Certification
 
-우선순위 순입니다. 각 항목의 근거는 위 "설계 기록"·"알려진 이슈"에 있습니다.
+**LG Aimers 7기** <sub>2025.07 ~ 2025.08</sub>
+강의 수료 및 곤지암 리조트 매출 분석 해커톤 참가. `LSTM` `RandomForest` 기반 수요 예측 모델 제작.
 
-### 답변 품질
+**숭실대학교 크루세이더스** (중앙 미식축구부)
+- 회장 <sub>2023.10 ~ 2024.11</sub> — 부원 70여 명 인솔
+- 디펜스 캡틴 <sub>2022.06 ~ 2025.12</sub>
+- 2025 서울 대학 미식축구 최강자전 **디비전 2 준우승**
 
-- [ ] **`search_qa` 전용 검색어 규칙** — 벌칙 검색어 지침이 `search_law`에만 먹혀 `outside-2`가 실패한다. 전역 프롬프트가 아니라 도구 docstring에 넣으면 영향 범위가 그 도구로 한정된다(같은 형태의 변경이 이미 한 번 부작용 없이 성공했다)
-- [ ] **judge 프롬프트에 조문·법정형 대조 항목** — 지금은 규칙 기반 평가자로 우회 중
-- [ ] **`expected_citations`의 단일 정답 가정 제거** — 같은 규칙을 여러 조문이 규정하는 경우를 감점 처리한다(`mix-3`이 근로기준법 제36조를 인용했는데 근로자퇴직급여 보장법 제9조를 요구해 틀린 것으로 잡혔다). 중첩 리스트를 OR로 해석하게 하면 된다
-- [ ] **하이브리드 검색 검토** — 유류분/유류처럼 임베딩이 혼동하는 법률 용어는 키워드 검색을 함께 써야 한다. 프롬프트로는 해결되지 않는다
+**Certification**
+- OPIc **IH** <sub>2026.03</sub>
+- 정보처리기사 <sub>2026.07 취득 예정</sub>
 
-### 안정성
+---
 
-- [ ] **도구 호출 XML 누출 방어** — 모델이 tool_use 대신 텍스트로 뱉는 경우가 드물게 있다. 표시 필터만으로는 체크포인트 오염을 못 막는다
-- [ ] **토큰 만료·폐기** — 지금은 발급된 토큰이 영원히 유효하고 로그아웃해도 서버에서 지워지지 않는다
-
-### 운영
-
-- [ ] **HTTPS** — `-p 8000:8000` 직접 노출이라 비밀번호와 토큰이 평문으로 오간다. 다중 사용자로 넓힐 거면 1순위
-- [ ] **콜드 스타트 워밍업** — 배포 직후 첫 요청이 느리다는 관찰이 있으나 n=1이라 미확정. `lifespan`에서 더미 검색을 한 번 돌리면 된다
-- [ ] **사용량 제한** — 한 사용자가 API 한도를 전부 소진할 수 있다
-
-### 데이터
-
-- [ ] **깊이 층 확장** — 법령 29개 / 전체 5,601개. 넓이 층(생활법령)이 커버리지의 답이지만 조문 원문이 없다. 어느 법령부터 넣을지는 생활법령 인용 빈도로 순위를 낼 수 있다(개인정보보호법 13위, 동물보호법 48위)
-- [ ] **판례 검색 쏠림 완화** — 판례당 1청크만 허용하는 후처리
+<p align="center">
+  <sub>지금은 RAG 검색이 "있는 조문을 못 찾는" 문제를 파고 있습니다.</sub>
+</p>
