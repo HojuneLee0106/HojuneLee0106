@@ -111,9 +111,9 @@ flowchart LR
 
 ### 🏋️ AI 헬스 자세 교정 어플리케이션 <sub>캡스톤디자인 · 2025.03 ~ 2025.06</sub>
 
-**LoRA** 기법으로 파인튜닝한 헬스케어 맞춤 챗봇. 운동 도메인에 특화된 응답을 생성하도록 경량 학습했습니다.
+**QLoRA** 기법으로 파인튜닝한 헬스케어 맞춤 챗봇. 운동 도메인에 특화된 응답을 생성하도록 경량 학습했습니다.
 
-`LoRA` `PEFT` `FastAPI`
+`QLoRA` `PEFT` `FastAPI`
 
 <br/>
 
@@ -199,7 +199,6 @@ Ollama(`gemma2`)로 글·댓글 자동 요약을 붙였습니다.
 
 ### 🎓 LG Aimers 7기 · Data Intelligence <sub>2025.07.01 ~ 2025.08.25 수료</sub>
 
-곤지암 리조트 **식음업장 메뉴 수요 예측** 해커톤 참가. `LSTM` `RandomForest` 기반 수요 예측 모델을 만들었습니다.
 
 <details>
 <summary>수료증 보기</summary>
