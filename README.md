@@ -1,31 +1,40 @@
-<h1 align="center">이호준 &nbsp;|&nbsp; Hojune Lee</h1>
-
 <p align="center">
-  <b>AI/ML Engineer</b><br/>
-  NLP &nbsp;·&nbsp; RAG &nbsp;·&nbsp; LLM Agent &nbsp;·&nbsp; Model Evaluation
+  <img src="assets/banner.png" alt="이호준 · Hojune Lee — AI/ML Engineer" width="100%"/>
 </p>
 
 <p align="center">
   <a href="mailto:hojune0106@naver.com">
     <img src="https://img.shields.io/badge/Email-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email"/>
   </a>
-  <img src="https://komarev.com/ghpvc/?username=HojuneLee0106&style=for-the-badge&color=0A66C2&label=PROFILE+VIEWS" alt="Profile views"/>
+  <img src="https://img.shields.io/badge/🏆_KTB_AI_성능_개선_대회-최우수상-FFB000?style=for-the-badge&labelColor=1a1a19" alt="최우수상"/>
+  <img src="https://komarev.com/ghpvc/?username=HojuneLee0106&style=for-the-badge&color=2a78d6&label=PROFILE+VIEWS" alt="Profile views"/>
 </p>
 
 ---
 
 ## 👋 About Me
 
-> **"만들었다"보다 "정말 나아졌는지 쟀다"를 더 중요하게 생각합니다.**
+음성 인식(STT)과 음성 합성(TTS)에서 시작해, 지금은 **RAG와 LLM 에이전트**를 만들고 있습니다.
 
-NLP 프로젝트를 중심으로 STT 성능 개선, TTS 모델 제작, RAG·에이전트 시스템까지 다뤄왔습니다.
-한 줄을 고친 뒤 지표가 0.03 올랐을 때 그게 개선인지 측정 노이즈인지 구분하려고,
-같은 문항을 3회씩 반복 측정하는 평가 파이프라인부터 만드는 편입니다.
+성능을 "올렸다"고 말하려면 먼저 재봐야 한다고 생각합니다. 생활법률 RAG를 만들 때 프롬프트를 고칠 때마다 점수가 오르내렸는데, 문항당 3회씩 반복 측정해 보니 **그 등락의 대부분이 노이즈**였습니다. 그 뒤로는 개선을 주장하기 전에 평가 파이프라인부터 세웁니다.
 
-- 🎓 **숭실대학교 소프트웨어학부** (2020.03 ~ 2026.02)
-- 🚀 **카카오테크 부트캠프 AI 실무개발 4기** (2026.05 ~ )
-- 🎖️ 해병대 1263기 병장 만기전역 (2020.10 ~ 2022.04)
-- 🔬 관심 분야 — RAG Architecture, Agent Systems, LLM Fine-tuning, Evaluation
+| | |
+|---|---|
+| 🎓 | **숭실대학교 소프트웨어학부** (2020.03 ~ 2026.02) |
+| 🚀 | **카카오테크 부트캠프 AI 실무개발 4기** (2026.05 ~ ) |
+| 🎖️ | 해병대 1263기 병장 만기전역 (2020.10 ~ 2022.04) |
+| 🔬 | RAG Architecture · Agent Systems · LLM Fine-tuning · Evaluation |
+
+---
+
+## 🏆 KTB 4기 AI 성능 개선 대회 — 최우수상
+
+> **카카오 약관 QA 시스템** · 13팀 · 예선 **87.138 / 100**
+> 검색 MRR `1.0000` · 키팩트 F1 `0.6638` · LLM 판정 `94.450`
+> 공개 10문항 검색 recall **12/12** · precision **12/12**
+
+카카오 약관 4종에서 질문에 해당하는 조항을 찾아 **답변과 근거 조항을 함께** 반환하는 RAG입니다.
+Google Colab T4 한 대, 외부 API 없이 동작합니다. → [저장소 보기](https://github.com/HojuneLee0106/Performance_Improvement_Contest)
 
 ---
 
@@ -33,48 +42,62 @@ NLP 프로젝트를 중심으로 STT 성능 개선, TTS 모델 제작, RAG·에�
 
 ### AItheNutrigene · AI/ML 인턴 <sub>2024.12 ~ 2025.02</sub>
 
-**SK Shieldus STT 성능 개선 프로젝트** (약 12주)
+**SK Shieldus STT 성능 개선 프로젝트** (약 12주) — `Python` `NVIDIA NeMo` `KenLM`
 
-N-gram Language Modeling과 Neural Rescoring을 적용해 상용 STT 모델의 인식 오류를 줄였습니다.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/stt-improvement-dark.png">
+  <img src="assets/stt-improvement.png" alt="STT 성능 개선: WER 18.64%→14.11%, CER 6.83%→5.57%" width="100%"/>
+</picture>
 
-| 지표 | Before | After | 개선 |
-|---|---|---|---|
-| **WER** (단어 오류율) | 18.64% | **14.11%** | ▼ 4.53%p |
-| **CER** (문자 오류율) | 6.83% | **5.57%** | ▼ 1.26%p |
-
-`Python` `NVIDIA NeMo` `KenLM`
+N-gram Language Modeling으로 도메인 어휘를 반영하고, Neural Rescoring으로 후보 문장을 다시 정렬해 인식 오류를 줄였습니다.
 
 ---
 
 ## 🚀 Projects
 
-### ⚖️ [생활법률 RAG 챗봇](https://github.com/HojuneLee0106/online_law) <sub>KTB</sub>
+### ⚖️ [생활법률 RAG 챗봇 "법대로"](https://github.com/HojuneLee0106/online_law)
 
 법조문 · 대법원 판례 · 생활법령을 근거로 답하는 법률 Q&A 어시스턴트.
 답변의 조문 번호와 사건번호를 **원문에서 그대로 가져와** 인용합니다.
 
-| | |
-|---|---|
-| **Stack** | LangGraph · Chroma · FastAPI(SSE) · Docker → GHCR → EC2 |
-| **Data** | 법조문 5,390청크 · 판례 3,138건(29,820청크) · 생활법령 21,610청크 |
-| **Eval** | `answer_quality 0.912` · `citation_grounding 0.984` · `tool_recall 1.000` |
-| **설계** | LangSmith로 단일/멀티 에이전트 3개 구조를 비교 후 single 채택 |
-
-가장 큰 교훈은 검색 인프라를 총동원한 개선(+0.031)보다 **모델 교체 한 번(+0.128)이 4배 컸다**는 것,
-그리고 **1회 실행 측정으로는 개선과 노이즈를 구분할 수 없다**는 것이었습니다.
+<img src="assets/law-ui.png" alt="법대로 서비스 화면 — 답변과 함께 검색한 조문 원문을 오른쪽 패널에 표시" width="100%"/>
 
 <br/>
 
-### 📄 [카카오 약관 QA 시스템](https://github.com/HojuneLee0106/Performance_Improvement_Contest) <sub>KTB 성능 개선 대회 최우수상</sub>
+**아키텍처**
 
-카카오 약관 4종에서 질문에 해당하는 조항을 찾아 **답변과 근거 조항을 함께** 반환하는 RAG.
-Google Colab T4 한 대, 외부 API 없이 동작합니다.
+```mermaid
+flowchart LR
+    U["사용자 질문"] --> A["LangGraph<br/>단일 에이전트"]
+    A -.->|search_law| L[("법조문<br/>5,390 청크")]
+    A -.->|search_case| C[("대법원 판례<br/>29,820 청크")]
+    A -.->|search_qa| Q[("생활법령<br/>21,610 청크")]
+    L --> A
+    C --> A
+    Q --> A
+    A --> R["답변 + 출처 인용<br/>조문번호 · 사건번호"]
+    R ==>|SSE 토큰 스트리밍| U
+```
+
+한 턴에 세 도구를 **병렬 호출**하므로 도구를 3개 쓰는 질문도 LLM 왕복은 2회뿐입니다.
+
+<br/>
+
+**무엇을 재고 어떻게 정했나**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/rag-quality-dark.png">
+  <img src="assets/rag-quality.png" alt="모델 구성별 answer_quality 비교" width="100%"/>
+</picture>
 
 | | |
 |---|---|
-| **성과** | KTB 4기 AI 성능 개선 대회 · 13팀 · **예선 87.138 / 100** |
-| **세부** | 검색 MRR `1.0000` · 키팩트 F1 `0.6638` · LLM 판정 `94.450` |
-| **검증** | 공개 10문항 검색 recall 12/12 · precision 12/12 |
+| **Stack** | LangGraph · Chroma · FastAPI(SSE) · Docker → GHCR → EC2 |
+| **Eval** | `answer_quality 0.912` · `citation_grounding 0.984` · `tool_recall 1.000` |
+| **설계** | LangSmith로 단일/멀티 에이전트 3개 구조를 비교한 뒤 single 채택 |
+
+검색 인프라를 총동원한 개선이 **+0.031**이었던 반면, 모델 교체 한 번이 **+0.128**로 4배 컸습니다.
+반대로 1회 실행 측정으로는 개선과 노이즈를 구분할 수 없다는 것도 같이 배웠습니다.
 
 <br/>
 
@@ -167,27 +190,36 @@ Ollama(`gemma2`)로 글·댓글 자동 요약을 붙였습니다.
 ## 📊 GitHub Stats
 
 <p align="center">
-  <img height="165" src="https://github-readme-stats.vercel.app/api?username=HojuneLee0106&show_icons=true&include_all_commits=true&count_private=true&hide_border=true&title_color=0A66C2&icon_color=0A66C2" alt="GitHub stats"/>
-  <img height="165" src="https://github-readme-stats.vercel.app/api/top-langs/?username=HojuneLee0106&layout=compact&hide=jupyter%20notebook,html&hide_border=true&title_color=0A66C2" alt="Top languages"/>
-</p>
-
-<p align="center">
-  <img src="https://streak-stats.demolab.com?user=HojuneLee0106&hide_border=true&ring=0A66C2&fire=0A66C2&currStreakLabel=0A66C2" alt="Streak"/>
+  <img src="https://streak-stats.demolab.com?user=HojuneLee0106&hide_border=true&ring=2a78d6&fire=2a78d6&currStreakLabel=2a78d6" alt="Streak"/>
 </p>
 
 ---
 
 ## 🏅 Activities & Certification
 
-**LG Aimers 7기** <sub>2025.07 ~ 2025.08</sub>
-강의 수료 및 곤지암 리조트 매출 분석 해커톤 참가. `LSTM` `RandomForest` 기반 수요 예측 모델 제작.
+### 🎓 LG Aimers 7기 · Data Intelligence <sub>2025.07.01 ~ 2025.08.25 수료</sub>
 
-**숭실대학교 크루세이더스** (중앙 미식축구부)
+곤지암 리조트 **식음업장 메뉴 수요 예측** 해커톤 참가. `LSTM` `RandomForest` 기반 수요 예측 모델을 만들었습니다.
+
+<details>
+<summary>수료증 보기</summary>
+<br/>
+<img src="assets/lg-aimers-cert.png" alt="LG Aimers 7기 Data Intelligence 수료증" width="72%"/>
+</details>
+
+<br/>
+
+### 🏈 숭실대학교 크루세이더스 (중앙 미식축구부)
+
 - 회장 <sub>2023.10 ~ 2024.11</sub> — 부원 70여 명 인솔
 - 디펜스 캡틴 <sub>2022.06 ~ 2025.12</sub>
 - 2025 서울 대학 미식축구 최강자전 **디비전 2 준우승**
 
-**Certification**
+<br/>
+
+### 📜 Certification
+
+- **LG Aimers 7기 / Data Intelligence** 수료 <sub>2025.08</sub>
 - OPIc **IH** <sub>2026.03</sub>
 - 정보처리기사 <sub>2026.07 취득 예정</sub>
 
