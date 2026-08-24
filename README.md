@@ -176,25 +176,6 @@ flowchart LR
 
 <br/>
 
-### 🧠 [miniGPT · 한국어 QA](https://github.com/HojuneLee0106/Chatbot)
-
-GPT 구조를 처음부터 직접 구현해 한국어 QA 데이터로 학습.
-`CausalSelfAttention`부터 학습 루프까지 라이브러리 없이 짜면서 트랜스포머 내부를 이해하는 게 목적이었습니다.
-
-| | |
-|---|---|
-| **Config** | `block_size=1024` · `n_embd=512` · `n_head=8` · `n_layer=8` |
-| **결과** | `val loss 3.022` (A100 80GB) |
-
-<br/>
-
-### 💬 [커뮤니티 서버](https://github.com/HojuneLee0106/Community_server)
-
-FastAPI 게시판 API. Router / Controller / Model 계층 분리 + MySQL 연동,
-Ollama(`gemma2`)로 글·댓글 자동 요약을 붙였습니다.
-
-> 200줄짜리 `main.py` 하나를 계층별로 쪼개보고 나서야, 왜 남들이 파일을 나누는지 이해했습니다.
-
 ---
 
 ## 🛠 Tech Stack
