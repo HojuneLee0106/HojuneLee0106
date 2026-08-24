@@ -55,6 +55,65 @@ N-gram Language Modeling으로 도메인 어휘를 반영하고, Neural Rescorin
 
 ## 🚀 Projects
 
+### 🛂 [Settle Agent · 외국인 정착 지원 에이전트](https://github.com/HojuneLee0106/settle-agent)
+
+국내 체류 외국인의 금융·행정 정착을 돕는 AI 에이전트.
+신분증을 찍어 올리면 OCR 로 프로필을 만들고, 체류자격 룰로 **지금 무엇을 할 수 있고 무엇이 막혀 있는지**를
+계산해 과제로 보여줍니다. 법령·안내매뉴얼을 근거로 답하고, 통합신청서 같은 서식을 채워 PDF 로 만듭니다.
+
+<br/>
+
+**그래프 — 경로는 코드에 고정, 자유는 조회 안에서만**
+
+```mermaid
+flowchart LR
+    P["planner<br/>룰 판정"] --> R{"router"}
+    R -->|부족한 값| S["slot_filler"]
+    R -->|질의응답| E["explainer<br/>researcher 도구 루프"]
+    R -->|서류| D["doc_builder"]
+    D --> G["approval_gate<br/>L2 사용자 승인"]
+    G --> X["executor"] --> RP["replanner"]
+```
+
+노드와 엣지가 `graph.py` 에 고정되어 있고 **승인 게이트를 우회하는 엣지가 없습니다.**
+L2 액션은 모델이 어떻게 동작하든 사용자 승인 없이 실행될 수 없고,
+L3(금융실명법 제3조 등 대행 불가)는 실행 경로 자체가 없습니다.
+
+**모델이 자율적으로 도는 곳은 Researcher 한 곳뿐입니다.** 거기서는 모델이 조회 도구를
+스스로 고르고 최대 6회까지 반복 호출합니다 — 자유는 "무엇을 몇 번 찾아볼지"까지고,
+**"가능한가"는 룰이 정합니다.** 도구 목록에 실행 도구를 넣지 않은 게 안전 장치입니다.
+
+도구는 판단 재료가 아니라 **결론**을 돌려줍니다 — 체류자격 매트릭스 원문을 넘기면
+모델이 자격을 추론해버리므로, planner 가 이미 낸 결론(`status`, `blocked_by`)만 전달합니다.
+모델은 틀린 말을 할 수는 있어도 **틀린 행동은 하지 못하게** 만드는 게 설계의 목표였습니다.
+
+<br/>
+
+**검색 · 서류**
+
+| | |
+|---|---|
+| **Corpus** | 법령 조문 `397` (출입국관리법·시행령·금융실명법·특정금융정보법) + 법무부 외국인체류 안내매뉴얼 `1,212` |
+| **Retrieval** | BM25(한글 음절 바이그램) + pgvector 코사인 → RRF · 사용자 자격 일치 문서 ×1.6, 타 자격 전용 ×0.45 |
+| **다국어** | 영문 질의를 문서에 실제로 쓰인 낱말로 먼저 치환 (`part-time job` → `시간제취업 체류자격 외 활동`) |
+| **서류** | **LLM 추론 없음** — `mappings/*.yaml` 결정적 매핑 → Jinja2 → WeasyPrint PDF · OCR 신뢰도 0.95 미만은 '확인요망' 표시 |
+
+<br/>
+
+**Stack**
+
+| | |
+|---|---|
+| `ai/` | Python 3.12 · FastAPI · LangGraph · CLOVA OCR · pgvector |
+| `backend/` | Java 21 · Spring Boot 3 · JPA · JWT · S3 presigned |
+| `frontend/` | React 18 · Vite 5 |
+| `infra` | Docker Compose · Caddy · GitHub Actions → ECR → EC2 |
+
+검색 평가는 정답 문서를 하나로 특정하기 어려워서, **무너지면 반드시 깨지는 것 하나만** 봅니다 —
+내 자격 문서가 남의 자격 문서에 밀리지 않는가.
+
+<br/>
+
 ### ⚖️ [생활법률 RAG 챗봇 "법대로"](https://github.com/HojuneLee0106/online_law)
 
 법조문 · 대법원 판례 · 생활법령을 근거로 답하는 법률 Q&A 어시스턴트.
@@ -222,5 +281,3 @@ Ollama(`gemma2`)로 글·댓글 자동 요약을 붙였습니다.
 - 정보처리기사 <sub>2026.07 취득 예정</sub>
 - ADSP <sub>2026.08 취득 예정</sub>
 ---
-
-
