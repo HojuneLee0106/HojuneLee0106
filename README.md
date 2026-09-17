@@ -259,6 +259,6 @@ flowchart LR
 ### 📜 Certification
 
 - OPIc **IH** <sub>2026.03</sub>
-- 정보처리기사 <sub>2026.07 취득 예정</sub>
+- 정보처리기사 <sub>2026.09 취득</sub>
 - ADSP <sub>2026.08 취득</sub>
 ---
