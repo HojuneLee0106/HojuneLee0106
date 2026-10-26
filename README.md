@@ -58,9 +58,27 @@ N-gram Language Modeling으로 도메인 어휘를 반영하고, Neural Rescorin
 ### 📈 [맴매 · 소상공인 AI 운영 매니저](https://github.com/100-hours-a-week/KTB4-7th-AI) `진행 중`
 
 카페·소규모 음식점 점주가 올린 POS 매출로 **다음 달 일별 매출을 예측**하고, 그 지표를 근거로 운영 솔루션을 제안하는 서비스.
-6인 팀 프로젝트(2026.08 ~ ) · **AI 담당 — 매출 예측 모델 설계·실험·서빙, LLM GPU 서빙 검증** (`app/services/forecast/`, `infra/vllm/`)
+6인 팀 프로젝트(2026.08 ~ ) · **AI 2인 — AI 서버 전체(매출 예측 · LLM 솔루션/인사이트 · 챗봇 에이전트 · GPU 서빙 검증)를 공동 설계·구현**
 
-**모델 선정 — 같은 조건에서 5개 비교**
+**AI 서버 구조 — 계산은 코드가, 생성은 LLM이**
+
+```mermaid
+flowchart LR
+    BE[Backend] -->|확정 지표만 전달| API[FastAPI<br/>internal API 4종]
+    API --> F[매출 예측<br/>Ridge 배치]
+    API --> S[솔루션 · 인사이트<br/>LLM 1회 호출]
+    API --> C[챗봇<br/>LangGraph 에이전트]
+    C <-->|필요할 때만| T[BE 조회 툴]
+    S --> V[Pydantic 스키마 검증<br/>Evidence 포함]
+    C -->|SSE| BE
+```
+
+- **LLM에는 원본 거래 대신 백엔드가 산출한 확정 지표만 넣습니다** — 모델이 수치를 만들어낼 여지를 없앴고, 모든 솔루션 카드에 근거 지표(`evidence`)를 붙여 "이 숫자가 어디서 나왔는가"를 추적할 수 있게 했습니다.
+- **솔루션 카드 3장과 인사이트를 LLM 1회 호출로 생성합니다** — 카드별 3회 호출 대비 지연·비용이 1/3이고, 한 번에 만들기 때문에 카드 간 조언 중복이 없습니다. 하루 단위로 고정해 같은 날 재진입해도 내용이 바뀌지 않습니다.
+- **챗봇은 단일 에이전트(agent ↔ tools)입니다** — 점주 질문은 단발성이라 서브 에이전트로 나누면 LLM 호출만 2~3배로 늘어납니다. 부족한 지표만 BE 조회 툴로 그때그때 가져오고, 답변은 SSE로 스트리밍합니다.
+- **계약을 코드로 고정했습니다** — 요청·응답 스키마(Pydantic)를 단일 진실 원천으로 두고, 라우터는 얇게·로직은 서비스 계층에만 두는 규칙으로 4개 엔드포인트를 분리했습니다.
+
+**매출 예측 모델 선정 — 같은 조건에서 5개 비교**
 
 | 모델 | MAPE D+30 | MAE | 학습+추론 |
 | --- | --- | --- | --- |
@@ -98,7 +116,7 @@ N-gram Language Modeling으로 도메인 어휘를 반영하고, Neural Rescorin
 - **L4 24GB의 실질 상한은 14B AWQ입니다** — HyperCLOVA X 14B(BF16 28GB)는 OOM, Qwen2.5-32B AWQ는 KV 캐시 부족으로 올라가지 않았습니다.
 - **품질은 동급이지만 v1은 Claude API를 씁니다** — 예상 트래픽(월 1천~5천 건)에서는 GPU 상시 가동이 API보다 19~94배 비싸고(월 71만원 vs 1~4만원), 실측 GPU 가동률이 2%였습니다. 손익분기(월 9.4만 건) 근접, 데이터 외부 전송 이슈, API 요금 변경 중 하나가 생기면 바로 전환할 수 있도록 대안을 검증해 뒀습니다.
 
-`scikit-learn` `pandas` `FastAPI` `Pydantic` `TimesFM` `PEFT/LoRA` `vLLM` `AWQ` · [설계 문서(Wiki)](https://github.com/100-hours-a-week/KTB4-7th-wiki/wiki)
+`FastAPI` `Pydantic` `LangGraph` `Anthropic Claude` `SSE` `scikit-learn` `pandas` `TimesFM` `PEFT/LoRA` `vLLM` `AWQ` · [설계 문서(Wiki)](https://github.com/100-hours-a-week/KTB4-7th-wiki/wiki)
 
 ### 🛂 [Settle Agent · 외국인 정착 지원 에이전트](https://github.com/HojuneLee0106/settle-agent)
 
