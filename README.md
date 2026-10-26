@@ -58,7 +58,7 @@ N-gram Language Modeling으로 도메인 어휘를 반영하고, Neural Rescorin
 ### 📈 [맴매 · 소상공인 AI 운영 매니저](https://github.com/100-hours-a-week/KTB4-7th-AI) `진행 중`
 
 카페·소규모 음식점 점주가 올린 POS 매출로 **다음 달 일별 매출을 예측**하고, 그 지표를 근거로 운영 솔루션을 제안하는 서비스.
-6인 팀 프로젝트(2026.08 ~ ) · **AI 담당 — 매출 예측 모델 설계·실험·서빙** (`app/services/forecast/`)
+6인 팀 프로젝트(2026.08 ~ ) · **AI 담당 — 매출 예측 모델 설계·실험·서빙, LLM GPU 서빙 검증** (`app/services/forecast/`, `infra/vllm/`)
 
 **모델 선정 — 같은 조건에서 5개 비교**
 
@@ -80,7 +80,25 @@ N-gram Language Modeling으로 도메인 어휘를 반영하고, Neural Rescorin
 - **앙상블은 미채택** — Ridge+Prophet이 -0.41%p였지만, 동기 호출 구조에서 추론 25배 증가를 정당화하지 못했습니다.
 - **데이터가 쌓이면 바뀔 지점까지 측정했습니다** — TimesFM-3 LoRA 파인튜닝에서 학습 83일 → 144일일 때 MAPE가 16.06 → 13.13%로 내려갔습니다. 1년치가 쌓이면 재평가할 조건으로 기록했습니다.
 
-`scikit-learn` `pandas` `FastAPI` `Pydantic` `TimesFM` `PEFT/LoRA` · [설계 문서(Wiki)](https://github.com/100-hours-a-week/KTB4-7th-wiki/wiki)
+**LLM 서빙 — Claude API vs 로컬 vLLM GPU 서빙**
+
+솔루션 카드·챗봇을 자체 GPU로 돌릴 수 있는지, 오픈소스 LLM 9종을 **vLLM + L4 24GB**에서 실서비스와 같은 엔진 조건으로 측정했습니다.
+속도보다 **품질 게이트(숫자정합 · JSON 준수 · 도구 선택)를 먼저** 통과해야 후보가 됩니다.
+
+| 모델 | 숫자정합 | JSON | 툴선택 | 생성 1건 | 결과 |
+| --- | --- | --- | --- | --- | --- |
+| Claude Sonnet 4.5 (기준선) | 5/5 | 5/5 | 6/6 | 10.3s | 기준 |
+| **Qwen3-14B AWQ (thinking off)** | **10/10** | **10/10** | **6/6** | **11.2s** | **1순위** |
+| Qwen2.5-14B AWQ | 10/10 | 10/10 | 6/6 | 14.2~15.0s | 백업 |
+| Qwen3-14B (thinking on) | 8/10 | 8/10 | 0/6 | 26.4s | 탈락 |
+| 한국어 특화 3종 (A.X · EXAONE · Kanana) | 0~1/10 | 1~10/10 | 6/6 | 15~24s | 탈락 |
+
+- **한국어 특화 모델은 3종 모두 숫자 환각으로 탈락했습니다** — JSON 형식은 지키면서 근거 지표(`evidence.value`)를 입력에 없는 숫자로 바꿔 쓰는 패턴이 공통으로 나타났습니다.
+- **thinking 모드는 구조화 출력에 맞지 않았습니다** — 추론 서술에 토큰을 소진해 도구 이름이 나오기 전에 응답이 잘렸습니다(툴선택 0/6).
+- **L4 24GB의 실질 상한은 14B AWQ입니다** — HyperCLOVA X 14B(BF16 28GB)는 OOM, Qwen2.5-32B AWQ는 KV 캐시 부족으로 올라가지 않았습니다.
+- **품질은 동급이지만 v1은 Claude API를 씁니다** — 예상 트래픽(월 1천~5천 건)에서는 GPU 상시 가동이 API보다 19~94배 비싸고(월 71만원 vs 1~4만원), 실측 GPU 가동률이 2%였습니다. 손익분기(월 9.4만 건) 근접, 데이터 외부 전송 이슈, API 요금 변경 중 하나가 생기면 바로 전환할 수 있도록 대안을 검증해 뒀습니다.
+
+`scikit-learn` `pandas` `FastAPI` `Pydantic` `TimesFM` `PEFT/LoRA` `vLLM` `AWQ` · [설계 문서(Wiki)](https://github.com/100-hours-a-week/KTB4-7th-wiki/wiki)
 
 ### 🛂 [Settle Agent · 외국인 정착 지원 에이전트](https://github.com/HojuneLee0106/settle-agent)
 
