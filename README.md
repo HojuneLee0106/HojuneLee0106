@@ -12,16 +12,6 @@
 
 ---
 
-## 🚀 Projects
-
-| 프로젝트 | 서비스 설명 | 레포 |
-|---|---|---|
-| 📈 **맴매** `진행 중` | 카페·소규모 음식점의 POS 매출로 다음 달 일별 매출을 예측하고, 그 지표를 근거로 운영 솔루션을 제안하는 서비스 | [100-hours-a-week/KTB4-7th-AI](https://github.com/100-hours-a-week/KTB4-7th-AI) |
-| 🛂 **Settle Agent** | 국내 체류 외국인의 금융·행정 정착을 돕는 AI 에이전트. 체류자격별로 할 수 있는 일을 안내하고 법령 근거 답변과 서식 PDF 작성을 지원 | [settle-AGENT/settle-agent](https://github.com/settle-AGENT/settle-agent) |
-| ⚖️ **법대로** | 법조문·대법원 판례·생활법령을 근거로 답하고 조문 번호와 사건번호를 인용하는 생활법률 RAG 챗봇 | [HojuneLee0106/online_law](https://github.com/HojuneLee0106/online_law) |
-
----
-
 ## 👋 About Me
 
 음성 인식(STT)과 음성 합성(TTS)에서 시작해, 지금은 **RAG와 LLM 에이전트**를 만들고 있습니다.
@@ -34,6 +24,16 @@
 | 🚀 | **카카오테크 부트캠프 AI 실무개발 4기** (2026.05 ~ ) |
 | 🎖️ | 해병대 1263기 병장 만기전역 (2020.10 ~ 2022.04) |
 | 🔬 | RAG Architecture · Agent Systems · LLM Fine-tuning · Evaluation |
+
+---
+
+## 🚀 Projects
+
+| 프로젝트 | 서비스 설명 | 레포 |
+|---|---|---|
+| 📈 **맴매** `진행 중` | 카페·소규모 음식점의 POS 매출로 다음 달 일별 매출을 예측하고, 그 지표를 근거로 운영 솔루션을 제안하는 서비스 | [100-hours-a-week/KTB4-7th-AI](https://github.com/100-hours-a-week/KTB4-7th-AI) |
+| 🛂 **Settle Agent** | 국내 체류 외국인의 금융·행정 정착을 돕는 AI 에이전트. 체류자격별로 할 수 있는 일을 안내하고 법령 근거 답변과 서식 PDF 작성을 지원 | [settle-AGENT/settle-agent](https://github.com/settle-AGENT/settle-agent) |
+| ⚖️ **법대로** | 법조문·대법원 판례·생활법령을 근거로 답하고 조문 번호와 사건번호를 인용하는 생활법률 RAG 챗봇 | [HojuneLee0106/online_law](https://github.com/HojuneLee0106/online_law) |
 
 ---
 
@@ -60,55 +60,6 @@ Google Colab T4 한 대, 외부 API 없이 동작합니다. → [저장소 보�
 </picture>
 
 N-gram Language Modeling으로 도메인 어휘를 반영하고, Neural Rescoring으로 후보 문장을 다시 정렬해 인식 오류를 줄였습니다.
-
----
-
-## 🛠 Tech Stack
-
-**AI / ML**
-
-<p>
-  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
-  <img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white"/>
-  <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white"/>
-  <img src="https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white"/>
-  <img src="https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white"/>
-  <img src="https://img.shields.io/badge/CUDA-76B900?style=for-the-badge&logo=nvidia&logoColor=white"/>
-</p>
-
-**LLM / RAG**
-
-<p>
-  <img src="https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white"/>
-  <img src="https://img.shields.io/badge/LangGraph-1C3C3C?style=for-the-badge&logo=langgraph&logoColor=white"/>
-  <img src="https://img.shields.io/badge/LangSmith-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black"/>
-  <img src="https://img.shields.io/badge/Chroma-FF6B6B?style=for-the-badge&logo=chromatic&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white"/>
-</p>
-
-**Backend / Infra**
-
-<p>
-  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Amazon%20EC2-FF9900?style=for-the-badge&logo=amazonec2&logoColor=white"/>
-  <img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white"/>
-  <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white"/>
-  <img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white"/>
-</p>
-
-**Collaboration**
-
-<p>
-  <img src="https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Jira-0052CC?style=for-the-badge&logo=jira&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Confluence-172B4D?style=for-the-badge&logo=confluence&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Figma-F24E1E?style=for-the-badge&logo=figma&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Miro-050038?style=for-the-badge&logo=miro&logoColor=white"/>
-</p>
 
 ---
 
