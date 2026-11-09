@@ -32,7 +32,7 @@
 | 프로젝트 | 서비스 설명 | 레포 |
 |---|---|---|
 | 📈 **맴매** `진행 중` | 카페·소규모 음식점의 POS 매출로 다음 달 일별 매출을 예측하고, 그 지표를 근거로 운영 솔루션을 제안하는 서비스 | [100-hours-a-week/KTB4-7th-AI](https://github.com/100-hours-a-week/KTB4-7th-AI) |
-| 🛂 **Settle Agent** | 국내 체류 외국인의 금융·행정 정착을 돕는 AI 에이전트. 체류자격별로 할 수 있는 일을 안내하고 법령 근거 답변과 서식 PDF 작성을 지원 | [settle-AGENT/settle-agent](https://github.com/settle-AGENT/settle-agent) |
+| 🛂 **Settle Agent** | 국내 체류 외국인의 금융·행정 정착을 돕는 AI 에이전트. 체류자격별로 할 수 있는 일을 안내하고 법령 근거 답변과 서식 PDF 작성을 지원 | [HojuneLee0106/settle-agent](https://github.com/HojuneLee0106/settle-agent) |
 | ⚖️ **법대로** | 법조문·대법원 판례·생활법령을 근거로 답하고 조문 번호와 사건번호를 인용하는 생활법률 RAG 챗봇 | [HojuneLee0106/online_law](https://github.com/HojuneLee0106/online_law) |
 
 ---
