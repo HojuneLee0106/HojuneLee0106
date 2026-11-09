@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="이호준 · Hojune Lee — AI/ML Engineer" width="100%"/>
+  <img src="assets/banner-v2.png" alt="이호준 · Hojune Lee — AI/ML Engineer" width="100%"/>
 </p>
 
 <p align="center">
