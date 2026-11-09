@@ -63,14 +63,6 @@ N-gram Language Modeling으로 도메인 어휘를 반영하고, Neural Rescorin
 
 ---
 
-## 📊 GitHub Stats
-
-<p align="center">
-  <img src="https://streak-stats.demolab.com?user=HojuneLee0106&hide_border=true&ring=2a78d6&fire=2a78d6&currStreakLabel=2a78d6" alt="Streak"/>
-</p>
-
----
-
 ## 🏅 Activities & Certification
 
 ### 🎓 LG Aimers 7기 · Data Intelligence <sub>2025.07.01 ~ 2025.08.25 수료</sub>
